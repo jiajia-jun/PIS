@@ -1,2 +1,4 @@
 # PIS
-Panoramic Image Stitching
+# Panoramic Image Stitching
+# 全景图像拼接
+
