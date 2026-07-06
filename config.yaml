@@ -1,0 +1,20 @@
+engine:
+  stitch_type: mock
+  analysis_type: mock
+  python_path: "E:\\Dev\\Compiler\\Python\\pythonw.exe"
+  stitch_script_path: ""
+  analysis_script_path: ""
+  cpp_binary: ""
+
+server:
+  port: 8080
+  upload_max_size_mb: 50
+
+worker:
+  pool_size: 3
+  timeout_seconds: 30
+  cleanup_minutes: 10
+
+store:
+  upload_dir: ./store/uploads
+  analysis_dir: ./store/analysis
