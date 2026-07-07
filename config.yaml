@@ -2,8 +2,8 @@ engine:
   stitch_type: mock
   analysis_type: mock
   python_path: "E:\\Dev\\Compiler\\Python\\pythonw.exe"
-  stitch_script_path: ""
-  analysis_script_path: ""
+  stitch_script_path: "./scripts/stitch.py"
+  analysis_script_path: "./scripts/analysis.py"
   cpp_binary: ""
 
 server:

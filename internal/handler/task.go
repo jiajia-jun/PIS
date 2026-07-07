@@ -10,12 +10,13 @@ import (
 
 // TaskHandler 任务查询处理器
 type TaskHandler struct {
-	svc *service.TaskService
+	svc          *service.TaskService
+	analysisDir  string
 }
 
 // NewTaskHandler 创建 TaskHandler
-func NewTaskHandler(svc *service.TaskService) *TaskHandler {
-	return &TaskHandler{svc: svc}
+func NewTaskHandler(svc *service.TaskService, analysisDir string) *TaskHandler {
+	return &TaskHandler{svc: svc, analysisDir: analysisDir}
 }
 
 // GetTask 查询单个任务状态 GET /api/task/:task_id
@@ -35,12 +36,12 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "ok",
-		"data":    taskToResponse(task),
+		"data":    h.taskToResponse(task),
 	})
 }
 
 // taskToResponse 将 Task 模型转为 API 响应格式
-func taskToResponse(task *model.Task) gin.H {
+func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 	resp := gin.H{
 		"task_id":     task.ID,
 		"status":      task.Status,
@@ -53,6 +54,9 @@ func taskToResponse(task *model.Task) gin.H {
 		resp["keypoints"] = task.Keypoints
 		resp["result_url"] = "/api/result/" + task.ID
 		resp["thumbnail_url"] = "/api/thumbnail/" + task.ID
+		if urls := listAnalysisFiles(h.analysisDir, task.ID); len(urls) > 0 {
+			resp["analysis_urls"] = urls
+		}
 	}
 
 	if task.Status == model.StatusFailed {
