@@ -2,11 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"pisweb/internal/service"
-	"pisweb/internal/tool"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +18,7 @@ func NewThumbnailHandler(svc *service.TaskService, uploadDir string) *ThumbnailH
 	return &ThumbnailHandler{svc: svc, uploadDir: uploadDir}
 }
 
-// GetThumbnail returns the result thumbnail as a binary JPEG stream (in-memory, no disk write)
+// GetThumbnail 返回预生成的缩略图（Worker 已存入 result/thumb.jpg）
 func (h *ThumbnailHandler) GetThumbnail(c *gin.Context) {
 	taskID := c.Param("task_id")
 
@@ -30,17 +28,7 @@ func (h *ThumbnailHandler) GetThumbnail(c *gin.Context) {
 		return
 	}
 
-	resultPath := filepath.Join(h.uploadDir, taskID, "result", "result.jpg")
-	src, err := os.Open(resultPath)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 404, "message": "result file not found"})
-		return
-	}
-	defer src.Close()
-
+	thumbPath := filepath.Join(h.uploadDir, taskID, "result", "thumb.jpg")
 	c.Header("Content-Type", "image/jpeg")
-	if err := tool.ResizeToJPEG(src, c.Writer, tool.ThumbnailWidth); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "thumbnail generation failed"})
-		return
-	}
+	c.File(thumbPath)
 }

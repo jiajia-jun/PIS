@@ -67,7 +67,6 @@ func TestMain(m *testing.M) {
 		taskLogger,
 		cfg.Store.UploadDir,
 		cfg.Store.AnalysisDir,
-		cfg.Worker.CleanupMinutes,
 	)
 
 	// 创建 Worker Pool

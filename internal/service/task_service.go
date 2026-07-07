@@ -2,11 +2,9 @@ package service
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"pisweb/internal/engine"
 	"pisweb/internal/model"
-	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -18,17 +16,15 @@ type TaskService struct {
 	taskLog     *zap.Logger
 	uploadDir   string
 	analysisDir string
-	cleanupMin  int
 }
 
 // NewTaskService 创建 TaskService 实例
-func NewTaskService(db *gorm.DB, taskLog *zap.Logger, uploadDir, analysisDir string, cleanupMin int) *TaskService {
+func NewTaskService(db *gorm.DB, taskLog *zap.Logger, uploadDir, analysisDir string) *TaskService {
 	return &TaskService{
 		db:          db,
 		taskLog:     taskLog,
 		uploadDir:   uploadDir,
 		analysisDir: analysisDir,
-		cleanupMin:  cleanupMin,
 	}
 }
 
@@ -88,7 +84,7 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 		task.ErrorMsg = runErr.Error()
 		s.db.Save(task)
 		s.writeTaskLog(task)
-		s.scheduleCleanup(inputDir)
+		s.enforceHistoryLimit()
 		return
 	}
 
@@ -100,7 +96,7 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 		task.ErrorMsg = fmt.Sprintf("解析 meta.json 失败: %v", err)
 		s.db.Save(task)
 		s.writeTaskLog(task)
-		s.scheduleCleanup(inputDir)
+		s.enforceHistoryLimit()
 		return
 	}
 
@@ -112,14 +108,7 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 	s.db.Save(task)
 
 	s.writeTaskLog(task)
-	s.scheduleCleanup(inputDir)
-}
-
-// scheduleCleanup 注册延时清理（10 分钟后删除 input 目录）
-func (s *TaskService) scheduleCleanup(inputDir string) {
-	time.AfterFunc(time.Duration(s.cleanupMin)*time.Minute, func() {
-		os.RemoveAll(inputDir)
-	})
+	s.enforceHistoryLimit()
 }
 
 // writeTaskLog 写入任务日志到 logs/task.log
