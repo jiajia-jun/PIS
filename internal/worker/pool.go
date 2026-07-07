@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 	"pisweb/internal/engine"
 	"pisweb/internal/model"
@@ -37,9 +38,14 @@ func NewPool(size int, timeoutSec int, svc *service.TaskService, logger *zap.Log
 	}
 }
 
-// Submit 提交任务到队列
-func (p *Pool) Submit(job Job) {
-	p.jobs <- job
+// Submit 提交任务到队列，超时返回 error（防止请求阻塞）
+func (p *Pool) Submit(job Job, timeout time.Duration) error {
+	select {
+	case p.jobs <- job:
+		return nil
+	case <-time.After(timeout):
+		return fmt.Errorf("任务队列已满，请稍后重试")
+	}
 }
 
 // Start 启动所有 Worker

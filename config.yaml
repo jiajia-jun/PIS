@@ -1,7 +1,7 @@
 engine:
   stitch_type: mock
   analysis_type: mock
-  python_path: "E:\\Dev\\Compiler\\Python\\pythonw.exe"
+  python_path: "E:/Dev/Compiler/Python/pythonw.exe"
   stitch_script_path: "./scripts/stitch.py"
   analysis_script_path: "./scripts/analysis.py"
   cpp_binary: ""
@@ -11,7 +11,7 @@ server:
   upload_max_size_mb: 50
 
 worker:
-  pool_size: 3
+  pool_size: 20
   timeout_seconds: 30
   cleanup_minutes: 10
 
