@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ func BodyLimit(maxSizeMB int) gin.HandlerFunc {
 		if c.Request.ContentLength > maxSizeBytes {
 			c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, gin.H{
 				"code":    413,
-				"message": "图像不得大于50MB",
+				"message": fmt.Sprintf("文件总大小超过%dMB限制", maxSizeMB),
 			})
 			return
 		}

@@ -27,8 +27,9 @@ type EngineConfig struct {
 
 // ServerConfig HTTP 服务器配置
 type ServerConfig struct {
-	Port            int `yaml:"port"`
-	UploadMaxSizeMB int `yaml:"upload_max_size_mb"`
+	Host            string `yaml:"host"` // 监听地址，空字符串=监听所有接口
+	Port            int    `yaml:"port"`
+	UploadMaxSizeMB int    `yaml:"upload_max_size_mb"`
 }
 
 // WorkerConfig Worker Pool 配置

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"pisweb/internal/engine"
@@ -37,12 +38,15 @@ func NewUploadHandler(svc *service.TaskService, pool *worker.Pool, stitchEngine,
 func (h *UploadHandler) Upload(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			gin.H{
-				"code":    400,
-				"message": "文件解析错误",
+		msg := "文件解析错误"
+		if strings.Contains(err.Error(), "request body too large") {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+				"code":    413,
+				"message": "文件总大小超过限制",
 			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": msg})
 		return
 	}
 

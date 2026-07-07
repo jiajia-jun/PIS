@@ -7,8 +7,9 @@ engine:
   cpp_binary: ""
 
 server:
+  host: "10.17.92.8"  # 留空=监听所有接口(0.0.0.0), 仅本地可设 127.0.0.1
   port: 8081
-  upload_max_size_mb: 50
+  upload_max_size_mb: 200
 
 worker:
   pool_size: 20

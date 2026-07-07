@@ -62,11 +62,11 @@ func (m *MockEngine) Run(ctx context.Context, taskDir string) (*Meta, error) {
 	return meta, nil
 }
 
-// isImageExt 判断是否为图片后缀
+// isImageExt 判断是否为图片后缀（大小写不敏感）
 func isImageExt(name string) bool {
 	ext := filepath.Ext(name)
 	switch ext {
-	case ".jpg", ".jpeg", ".png":
+	case ".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG":
 		return true
 	}
 	return false
