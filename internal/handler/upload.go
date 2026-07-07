@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"pisweb/internal/engine"
 	"pisweb/internal/service"
@@ -100,12 +101,18 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	}
 
 	taskDir := filepath.Join(h.uploadDir, taskID)
-	h.pool.Submit(worker.Job{
+	if err := h.pool.Submit(worker.Job{
 		TaskID:         taskID,
 		TaskDir:        taskDir,
 		StitchEngine:   h.stitchEngine,
 		AnalysisEngine: h.analysisEngine,
-	})
+	}, 3*time.Second); err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"code":    503,
+			"message": "系统繁忙，请稍后重试",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
