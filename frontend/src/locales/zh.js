@@ -14,7 +14,7 @@ export default {
     failed: '上传失败',
     network_error: '网络错误，请重试',
     limit_exceed: '最多只能上传 20 张图片',
-    size_exceed: '文件 {name} 超过 50MB 限制',
+    size_exceed: '文件 {name} 超过 200MB 限制',
   },
   task: {
     title: '任务',

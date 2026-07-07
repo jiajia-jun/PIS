@@ -14,7 +14,7 @@ export default {
     failed: 'Upload failed',
     network_error: 'Network error, please try again',
     limit_exceed: 'Maximum 20 images allowed',
-    size_exceed: 'File {name} exceeds 50MB limit',
+    size_exceed: 'File {name} exceeds 200MB limit',
   },
   task: {
     title: 'Task',

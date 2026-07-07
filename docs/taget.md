@@ -29,6 +29,6 @@ Go 与 Python 之间通过“文件系统 + JSON”通信，禁止直接传 Base
 
 【工程约束与容错】
 1. Go 调用 Python 必须设置 context.WithTimeout（超时 30 秒），超时或报错时优雅记录 ErrorMsg，不允许 Go 服务崩溃。
-2. 后台 Worker Pool 数量固定为 3（防止同时跑太多 Python 进程导致 OOM）。
-3. 上传文件大小限制为 50MB。
+2. 后台 Worker Pool 数量固定为 20（防止同时跑太多 Python 进程导致 OOM）。
+3. 上传文件大小限制为 200MB。
 4. 拼接完成后，10 分钟后自动清理原始上传文件（用 time.AfterFunc）。

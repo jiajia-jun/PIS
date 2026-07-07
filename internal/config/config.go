@@ -8,7 +8,7 @@ import (
 
 // Config 应用配置
 type Config struct {
-	DSN    string       // 从环境变量 DATABASE_PATH 读取，非 yaml 字段
+	DSN    string       // 从环境变量 DATABASE_PIS 读取，非 yaml 字段
 	Engine EngineConfig `yaml:"engine"`
 	Server ServerConfig `yaml:"server"`
 	Worker WorkerConfig `yaml:"worker"`
