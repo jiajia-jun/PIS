@@ -5,9 +5,112 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PIS - 全景图像拼接</title>
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #1a3a6e 100%);
+        cursor: pointer;
+        transition: opacity 0.5s ease;
+      }
+      #splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash .pis {
+        font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-size: 96px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 24px;
+        animation: pis-reveal 0.6s ease-out forwards;
+      }
+      #splash .subtitle {
+        font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-size: 18px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.85);
+        letter-spacing: 6px;
+        margin-top: 16px;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: subtitle-slide 0.4s 0.8s ease-out forwards;
+      }
+      #splash .skip-hint {
+        position: absolute;
+        bottom: 40px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 2px;
+        opacity: 0;
+        animation: hint-show 0.3s 2s ease-out forwards;
+      }
+      @keyframes pis-reveal {
+        0%   { opacity: 0; filter: blur(8px); transform: scale(0.95); }
+        100% { opacity: 1; filter: blur(0);   transform: scale(1); }
+      }
+      @keyframes subtitle-slide {
+        0%   { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes hint-show {
+        to { opacity: 1; }
+      }
+
+      /* 移动端适配 */
+      @media (max-width: 600px) {
+        #splash .pis {
+          font-size: 56px;
+          letter-spacing: 14px;
+        }
+        #splash .subtitle {
+          font-size: 14px;
+          letter-spacing: 4px;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <div class="pis">PIS</div>
+      <div class="subtitle">Panoramic Imaging Stitching</div>
+      <div class="skip-hint">点击任意位置进入</div>
+    </div>
     <div id="app"></div>
+    <script>
+      (function() {
+        var VISITED_KEY = 'pis_visited'
+        var splash = document.getElementById('splash')
+
+        // 不是首次访问，直接隐藏
+        if (localStorage.getItem(VISITED_KEY)) {
+          splash.style.display = 'none'
+          return
+        }
+
+        // 标记已访问
+        localStorage.setItem(VISITED_KEY, '1')
+
+        var removed = false
+        function dismiss() {
+          if (removed) return
+          removed = true
+          splash.classList.add('fade-out')
+          setTimeout(function() { splash.style.display = 'none' }, 500)
+        }
+
+        // 自动播放完后淡出（600ms blur + 200ms pause + 400ms subtitle + 1200ms hold = 2400ms）
+        setTimeout(dismiss, 2400)
+
+        // 点击跳过
+        splash.addEventListener('click', dismiss, { once: true })
+      })()
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
