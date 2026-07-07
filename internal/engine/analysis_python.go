@@ -31,9 +31,9 @@ func (p *PythonAnalysisEngine) Run(ctx context.Context, taskDir string) (*Meta, 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, fmt.Errorf("analysis timeout: %w", ctx.Err())
+			return nil, fmt.Errorf("分析超时: %w", ctx.Err())
 		}
-		return nil, fmt.Errorf("analysis failed: %w\noutput: %s", err, string(output))
+		return nil, fmt.Errorf("分析失败: %w\n输出: %s", err, string(output))
 	}
 
 	return &Meta{Status: "ok", Error: ""}, nil

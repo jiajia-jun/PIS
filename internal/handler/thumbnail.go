@@ -24,7 +24,7 @@ func (h *ThumbnailHandler) GetThumbnail(c *gin.Context) {
 
 	task, err := h.svc.GetTask(taskID)
 	if err != nil || task.Status != "completed" {
-		c.JSON(http.StatusNotFound, gin.H{"code": 404, "message": "result not ready"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 404, "message": "结果尚未就绪"})
 		return
 	}
 

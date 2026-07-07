@@ -24,11 +24,11 @@ func main() {
 	// 1. 加载配置
 	cfg, err := config.Load("config.yaml")
 	if err != nil {
-		log.Fatalf("config load failed: %v", err)
+		log.Fatalf("配置加载失败: %v", err)
 	}
 
 	if cfg.DSN == "" {
-		log.Fatal("env DATABASE_PIS not set")
+		log.Fatal("环境变量 DATABASE_PIS 未设置")
 	}
 
 	// 2. 初始化日志
@@ -40,7 +40,7 @@ func main() {
 
 	// 3. 初始化数据库
 	if err := database.Init(cfg.DSN); err != nil {
-		log.Fatalf("db init failed: %v", err)
+		log.Fatalf("数据库初始化失败: %v", err)
 	}
 
 	// 4. 创建拼接引擎
@@ -74,7 +74,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("stitch engine: %s, analysis engine: %s\n", stitchEngine.Name(), analysisEngine.Name())
+	fmt.Printf("拼接引擎: %s, 分析引擎: %s\n", stitchEngine.Name(), analysisEngine.Name())
 
 	// 6. 初始化 TaskService
 	taskSvc := service.NewTaskService(
@@ -113,13 +113,20 @@ func main() {
 		api.GET("/thumbnail/:task_id", thumbH.GetThumbnail)
 	}
 
+	// 托管前端静态文件（需先 cd frontend && npm run build）
+	r.Static("/assets", "./frontend/dist/assets")
+	r.StaticFile("/favicon.ico", "./frontend/dist/favicon.ico")
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./frontend/dist/index.html")
+	})
+
 	// 10. 启动服务器
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	fmt.Printf("server starting on http://localhost%s\n", addr)
+	fmt.Printf("服务启动: http://localhost%s\n", addr)
 
 	go func() {
 		if err := r.Run(addr); err != nil {
-			log.Fatalf("server start failed: %v", err)
+			log.Fatalf("服务启动失败: %v", err)
 		}
 	}()
 
@@ -128,8 +135,8 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("\nshutting down...")
+	fmt.Println("\n正在关闭服务...")
 	cancel()
 	time.Sleep(500 * time.Millisecond)
-	fmt.Println("server stopped")
+	fmt.Println("服务已停止")
 }
