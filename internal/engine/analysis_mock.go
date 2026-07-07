@@ -30,11 +30,12 @@ func (m *MockAnalysisEngine) Run(ctx context.Context, taskDir string) (*Meta, er
 		return nil, err
 	}
 
-	// 生成一个占位 PNG 文件，验证链路
+	// 生成占位 PNG 文件，验证链路
 	minPNG, _ := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
-	placeholder := filepath.Join(outDir, "mock_chart.png")
-	if err := os.WriteFile(placeholder, minPNG, 0644); err != nil {
-		return nil, err
+	for _, name := range []string{"mock_chart.png", "stitch_chart.png"} {
+		if err := os.WriteFile(filepath.Join(outDir, name), minPNG, 0644); err != nil {
+			return nil, err
+		}
 	}
 
 	return &Meta{Status: "ok", CostMs: 500, Error: ""}, nil

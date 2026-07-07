@@ -41,7 +41,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			http.StatusBadRequest,
 			gin.H{
 				"code":    400,
-				"message": "file parse error",
+				"message": "文件解析错误",
 			})
 		return
 	}
@@ -52,7 +52,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			http.StatusBadRequest,
 			gin.H{
 				"code":    400,
-				"message": "no images selected",
+				"message": "未选择图片",
 			})
 		return
 	}
@@ -63,7 +63,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			http.StatusInternalServerError,
 			gin.H{
 				"code":    500,
-				"message": "create task failed",
+				"message": "创建任务失败",
 			})
 		return
 	}
@@ -76,7 +76,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			http.StatusInternalServerError,
 			gin.H{
 				"code":    500,
-				"message": "create dir failed",
+				"message": "创建目录失败",
 			})
 		return
 	}
@@ -85,7 +85,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			http.StatusInternalServerError,
 			gin.H{
 				"code":    500,
-				"message": "create dir failed",
+				"message": "创建目录失败",
 			})
 		return
 	}
@@ -95,7 +95,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 		if err := saveUploadedFile(file, dstPath); err != nil {
 			c.JSON(
 				http.StatusInternalServerError,
-				gin.H{"code": 500, "message": "save file failed"})
+				gin.H{"code": 500, "message": "保存文件失败"})
 			return
 		}
 	}

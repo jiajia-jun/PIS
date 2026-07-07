@@ -8,11 +8,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// RequestLogger 请求日志中间件，使用 zap 记录 method、path、状态码、耗时
+// RequestLogger 请求日志中间件，同时输出到文件和控制台
 func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		path := c.Request.URL.Path
+		rawPath := c.Request.URL.Path
 		rawQuery := c.Request.URL.RawQuery
 
 		c.Next()
@@ -20,10 +20,9 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		latency := time.Since(start)
 		statusCode := c.Writer.Status()
 
-		// 拼接完整路径
-		fullPath := path
+		fullPath := rawPath
 		if rawQuery != "" {
-			fullPath = path + "?" + rawQuery
+			fullPath = rawPath + "?" + rawQuery
 		}
 
 		logger.Info("",
@@ -35,14 +34,14 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// InitAccessLogger 创建 access.log 的 zap Logger，ConsoleEncoder 格式
+// InitAccessLogger 创建访问日志 Logger，同时输出到文件和标准输出
 func InitAccessLogger(path string) *zap.Logger {
 	cfg := zap.NewProductionConfig()
 	cfg.Encoding = "console"
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
 	cfg.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	cfg.OutputPaths = []string{path}
+	cfg.OutputPaths = []string{path, "stdout"}
 	cfg.DisableStacktrace = true
 
 	logger, err := cfg.Build()
@@ -52,13 +51,13 @@ func InitAccessLogger(path string) *zap.Logger {
 	return logger
 }
 
-// InitTaskLogger 创建 task.log 的 zap Logger，ConsoleEncoder 格式
+// InitTaskLogger 创建任务日志 Logger，同时输出到文件和标准输出
 func InitTaskLogger(path string) *zap.Logger {
 	cfg := zap.NewProductionConfig()
 	cfg.Encoding = "console"
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
-	cfg.OutputPaths = []string{path}
+	cfg.OutputPaths = []string{path, "stdout"}
 	cfg.DisableStacktrace = true
 
 	logger, err := cfg.Build()
