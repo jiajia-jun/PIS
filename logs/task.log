@@ -1,6 +1,0 @@
-2026-07-06 22:01:01	info	service/task_service.go:137		{"task_id": "d25855ee-9804-4262-8215-867a3bf64024", "status": "failed", "error": "输入目录无图片文件", "images": 2}
-2026-07-06 22:01:45	info	service/task_service.go:137		{"task_id": "aa17d8c9-5db2-4703-b2dd-4c65c25e2b3e", "status": "failed", "error": "输入目录无图片文件", "images": 2}
-2026-07-06 22:02:30	info	service/task_service.go:129		{"task_id": "a2de9e25-6e09-4056-8259-9828433d3b23", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 2}
-2026-07-06 22:08:46	info	service/task_service.go:129		{"task_id": "e86fa2b5-d90a-4c54-bb7f-0a40dbd1d3b0", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 2}
-2026-07-06 22:14:36	info	service/task_service.go:129		{"task_id": "d990a206-b69c-4b5b-9e73-3f2dd605aae1", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 2}
-2026-07-06 22:42:07	info	service/task_service.go:129		{"task_id": "87a84543-bdb0-41d4-b230-e6735c0ba1a8", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 2}
