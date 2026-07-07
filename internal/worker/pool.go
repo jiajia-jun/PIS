@@ -3,11 +3,13 @@ package worker
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"time"
+
 	"go.uber.org/zap"
 	"pisweb/internal/engine"
 	"pisweb/internal/model"
 	"pisweb/internal/service"
-	"time"
 )
 
 // Job 任务工作单元
@@ -100,6 +102,17 @@ func (p *Pool) processJob(job Job) {
 		)
 	}
 
+	// 第三步：预生成缩略图存盘
+	resultPath := filepath.Join(job.TaskDir, "result", "result.jpg")
+	thumbPath := filepath.Join(job.TaskDir, "result", "thumb.jpg")
+	if err := generateThumbnail(resultPath, thumbPath); err != nil {
+		p.logger.Warn("thumbnail generation failed",
+			zap.String("task_id", job.TaskID),
+			zap.Error(err),
+		)
+	}
+
 	// 拼接成功，交给 Service 善后
 	p.service.HandleResult(job.TaskID, job.TaskDir, meta, nil)
 }
+

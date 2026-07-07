@@ -82,7 +82,6 @@ func main() {
 		taskLogger,
 		cfg.Store.UploadDir,
 		cfg.Store.AnalysisDir,
-		cfg.Worker.CleanupMinutes,
 	)
 
 	// 7. 创建 Worker Pool

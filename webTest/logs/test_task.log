@@ -29,3 +29,112 @@
 2026-07-07 11:27:05	info	service/task_service.go:129		{"task_id": "b9889717-4ca3-4ed0-870d-c7aae74e1520", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
 2026-07-07 11:27:05	info	service/task_service.go:129		{"task_id": "f73ffcff-ab41-42aa-b949-6d2888308e10", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
 2026-07-07 11:27:05	info	service/task_service.go:129		{"task_id": "702e4dd6-791b-4a39-bc98-3437934d14d5", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:56:25	info	service/task_service.go:115		{"task_id": "2d35e582-483e-49d7-8d44-c34862feb1a5", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 3}
+2026-07-07 17:57:41	info	service/task_service.go:148		{"task_id": "2b2a3b65-6413-4a32-b083-9aa2fb5e9d51", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 3}
+2026-07-07 17:57:41	info	service/task_service.go:137	history evicted	{"task_id": "899ca2fa-04d5-4c43-ae03-7a6b642d4332", "status": "completed"}
+2026-07-07 17:57:41	info	service/task_service.go:137	history evicted	{"task_id": "3e79847b-6d2b-47e6-a5c5-63adbba03a52", "status": "completed"}
+2026-07-07 17:57:41	info	service/task_service.go:137	history evicted	{"task_id": "ca5a8b25-2ee7-4476-b129-5d5ac6da2cfa", "status": "completed"}
+2026-07-07 17:57:41	info	service/task_service.go:137	history evicted	{"task_id": "08f696d3-e61a-430f-9173-11c372cf0ae8", "status": "completed"}
+2026-07-07 17:57:43	info	service/task_service.go:148		{"task_id": "04550316-60c3-44bb-9b3f-0bf5fc72cbce", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:43	info	service/task_service.go:137	history evicted	{"task_id": "d595cd34-301a-49f1-887f-39400eff02a4", "status": "completed"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "cfda87ce-1a9f-4c6e-a8db-250efd60cfe2", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "f6d15c8c-6a31-46cb-88b9-8ce174152830", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "dd97d994-16c0-4a9d-9ee8-02cd25d2191d", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "9bc6b4b0-2541-4b04-a13c-72996d5a1824", "error": "image: unknown format"}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "cfda87ce-1a9f-4c6e-a8db-250efd60cfe2", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "b67368b2-97fd-49df-98c7-0a943bb015e8", "error": "image: unknown format"}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "f6d15c8c-6a31-46cb-88b9-8ce174152830", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "05290f93-3d7c-4278-80e4-c5256895ea36", "error": "image: unknown format"}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "dd97d994-16c0-4a9d-9ee8-02cd25d2191d", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "3dd04838-a645-4d04-a072-39b4da458b26", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "269abe55-60d0-48f9-9132-235a1d704918", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "56110024-1b60-4bb9-a601-f18633296229", "error": "image: unknown format"}
+2026-07-07 17:57:45	warn	worker/pool.go:111	thumbnail generation failed	{"task_id": "fae7f934-78b5-48de-aa2e-a2d37be926cd", "error": "image: unknown format"}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "9bc6b4b0-2541-4b04-a13c-72996d5a1824", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "05290f93-3d7c-4278-80e4-c5256895ea36", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "b67368b2-97fd-49df-98c7-0a943bb015e8", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "3dd04838-a645-4d04-a072-39b4da458b26", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "56110024-1b60-4bb9-a601-f18633296229", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "fae7f934-78b5-48de-aa2e-a2d37be926cd", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:148		{"task_id": "269abe55-60d0-48f9-9132-235a1d704918", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "d44408a4-5402-4ad5-ad4f-4ff9a2d4767e", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "3ca12b92-5742-4c73-98e7-ea5fa1bc0a10", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "235fc702-ad0d-42e6-87f4-971bc1191de4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "2693aefc-dcee-463a-9e6e-381a4f2b20c4", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "14305a68-7b9e-4542-943d-fd586cb85062", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "b599f464-f984-42f7-9fde-9b7ea85a1a3d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "59f43881-18e7-42a7-9ef5-b2bc489798b7", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "c487c11d-39f0-47de-8064-a8904964485c", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "c487c11d-39f0-47de-8064-a8904964485c", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "c487c11d-39f0-47de-8064-a8904964485c", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "59f43881-18e7-42a7-9ef5-b2bc489798b7", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "59f43881-18e7-42a7-9ef5-b2bc489798b7", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "59f43881-18e7-42a7-9ef5-b2bc489798b7", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "73947b5b-0e54-4152-a855-57e733386ec8", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "73947b5b-0e54-4152-a855-57e733386ec8", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "8aa5f524-929e-4d3f-b0d1-ffa6cd06092d", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "419a9208-8e75-4efc-8e14-e54986dc6665", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "419a9208-8e75-4efc-8e14-e54986dc6665", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "87a5b118-4450-47cb-9626-baf2df60a127", "status": "completed"}
+2026-07-07 17:57:45	info	service/task_service.go:137	history evicted	{"task_id": "31b10795-1ec1-42a5-a9e1-85d34e487b76", "status": "completed"}
+2026-07-07 17:59:29	info	service/task_service.go:118		{"task_id": "227d47e7-e940-4447-a512-707501df13be", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 3}
+2026-07-07 17:59:32	info	service/task_service.go:118		{"task_id": "6602bc9b-6f34-49c5-a0d2-1a66c957b794", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "3da284b7-819a-4788-baee-758ec2e6bbfd", "error": "image: unknown format"}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "3da284b7-819a-4788-baee-758ec2e6bbfd", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "cbdfc87c-aa40-4935-8fd7-bed2f80c5b45", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "d7024572-504f-46e1-87c2-1699b7b24588", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "32776719-f5e6-4faa-8796-4f60397526ee", "error": "image: unknown format"}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "cbdfc87c-aa40-4935-8fd7-bed2f80c5b45", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "8495d689-acff-4733-b929-6661aff7534b", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "bc691b96-488c-4987-b1dd-806579c4792d", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "4db8e1d5-162b-47b6-b079-b3509968665d", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "24decc60-5df4-4e36-87c4-88758cb61fbb", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "34d75cc1-0f83-47b4-8ced-b917bb38adac", "error": "image: unknown format"}
+2026-07-07 17:59:34	warn	worker/pool.go:109	thumbnail generation failed	{"task_id": "85b59f7c-0fb1-4ce4-a1c9-b63cec7cd6ec", "error": "image: unknown format"}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "d7024572-504f-46e1-87c2-1699b7b24588", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "8495d689-acff-4733-b929-6661aff7534b", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "34d75cc1-0f83-47b4-8ced-b917bb38adac", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "24decc60-5df4-4e36-87c4-88758cb61fbb", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "85b59f7c-0fb1-4ce4-a1c9-b63cec7cd6ec", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "4db8e1d5-162b-47b6-b079-b3509968665d", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "32776719-f5e6-4faa-8796-4f60397526ee", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
+2026-07-07 17:59:34	info	service/task_service.go:118		{"task_id": "bc691b96-488c-4987-b1dd-806579c4792d", "status": "completed", "cost_ms": 1000, "keypoints": 150, "images": 1}
