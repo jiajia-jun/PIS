@@ -53,11 +53,29 @@
         </div>
       </div>
 
-      <div v-if="task.analysis_urls?.length" class="analysis-section">
+      <div v-if="task.chart_urls?.length" class="analysis-section">
         <h3>{{ $t('task.charts') }}</h3>
         <div class="chart-grid">
-          <div v-for="url in task.analysis_urls" :key="url" class="chart-item">
+          <div v-for="url in task.chart_urls" :key="url" class="chart-item">
             <img :src="url" :alt="url" />
+          </div>
+        </div>
+      </div>
+
+      <div v-if="tableData.length" class="table-section">
+        <h3>{{ $t('task.tables') }}</h3>
+        <div v-for="(tbl, idx) in tableData" :key="idx" class="table-card">
+          <h4 class="table-title">{{ tbl.title }}</h4>
+          <div class="table-wrap">
+            <el-table :data="tbl.rows" border stripe size="small" max-height="400">
+              <el-table-column
+                v-for="(h, ci) in tbl.headers"
+                :key="ci"
+                :prop="String(ci)"
+                :label="h"
+                :min-width="120"
+              />
+            </el-table>
           </div>
         </div>
       </div>
@@ -66,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Loading } from '@element-plus/icons-vue'
 import { getTask } from '../api'
@@ -75,10 +93,26 @@ const route = useRoute()
 const taskId = route.params.taskId
 const task = ref(null)
 const notFound = ref(false)
+const tableData = ref([])
 let timer = null
 
 const thumbnailSrc = computed(() => `/api/thumbnail/${taskId}`)
 const resultSrc = computed(() => `/api/result/${taskId}`)
+
+async function fetchTables(urls) {
+  if (!urls?.length) { tableData.value = []; return }
+  const results = []
+  for (const url of urls) {
+    try {
+      const res = await fetch(url)
+      const json = await res.json()
+      if (json && json.headers && json.rows) {
+        results.push(json)
+      }
+    } catch { /* skip broken table */ }
+  }
+  tableData.value = results
+}
 
 async function poll() {
   try {
@@ -87,6 +121,9 @@ async function poll() {
       task.value = res.data
       if (res.data.status === 'completed' || res.data.status === 'failed') {
         clearInterval(timer)
+        if (res.data.table_urls) {
+          fetchTables(res.data.table_urls)
+        }
       }
     } else if (res.code === 404) {
       notFound.value = true
@@ -119,7 +156,7 @@ onUnmounted(() => clearInterval(timer))
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
 }
 .meta-bar strong { color: #333; font-size: 18px; }
-.result-section h3, .analysis-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+.result-section h3, .analysis-section h3, .table-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
 .preview-hint { font-size: 12px; color: #999; font-weight: 400; }
 .result-image-wrap {
   background: #fff;
@@ -173,4 +210,15 @@ onUnmounted(() => clearInterval(timer))
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 .chart-item img { width: 100%; display: block; }
+
+.table-section { margin-top: 40px; }
+.table-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+.table-title { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #333; }
+.table-wrap { overflow-x: auto; }
 </style>

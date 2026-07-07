@@ -59,8 +59,11 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		resp["keypoints"] = task.Keypoints
 		resp["result_url"] = "/api/result/" + task.ID
 		resp["thumbnail_url"] = "/api/thumbnail/" + task.ID
-		if urls := listAnalysisFiles(h.analysisDir, task.ID); len(urls) > 0 {
-			resp["analysis_urls"] = urls
+		if urls := listChartFiles(h.analysisDir, task.ID); len(urls) > 0 {
+			resp["chart_urls"] = urls
+		}
+		if urls := listTableFiles(h.analysisDir, task.ID); len(urls) > 0 {
+			resp["table_urls"] = urls
 		}
 		if urls := listInputFiles(h.uploadDir, task.ID); len(urls) > 0 {
 			resp["input_urls"] = urls

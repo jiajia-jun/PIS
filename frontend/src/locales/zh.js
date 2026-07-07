@@ -29,6 +29,7 @@ export default {
     preview_hint: '点击查看原图',
     source_images: '原始图片',
     charts: '分析图表',
+    tables: '分析数据',
   },
   history: {
     title: '拼接历史',

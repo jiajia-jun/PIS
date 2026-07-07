@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,8 +39,18 @@ func (h *AnalysisHandler) GetAnalysis(c *gin.Context) {
 	c.File(filePath)
 }
 
-// listAnalysisFiles 扫描分析目录，返回该任务的 API URL 列表
-func listAnalysisFiles(analysisDir, taskID string) []string {
+// listChartFiles 扫描分析目录，返回该任务的 PNG 图表 URL 列表
+func listChartFiles(analysisDir, taskID string) []string {
+	return listFilesByExt(analysisDir, taskID, ".png")
+}
+
+// listTableFiles 扫描分析目录，返回该任务的 JSON 表格 URL 列表
+func listTableFiles(analysisDir, taskID string) []string {
+	return listFilesByExt(analysisDir, taskID, ".json")
+}
+
+// listFilesByExt 扫描分析目录，按扩展名过滤文件并返回 API URL 列表
+func listFilesByExt(analysisDir, taskID, ext string) []string {
 	dir := filepath.Join(analysisDir, taskID)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -48,7 +59,7 @@ func listAnalysisFiles(analysisDir, taskID string) []string {
 
 	var urls []string
 	for _, e := range entries {
-		if !e.IsDir() {
+		if !e.IsDir() && strings.EqualFold(filepath.Ext(e.Name()), ext) {
 			urls = append(urls, "/api/analysis/"+taskID+"/"+e.Name())
 		}
 	}
