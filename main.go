@@ -28,7 +28,7 @@ func main() {
 	}
 
 	if cfg.DSN == "" {
-		log.Fatal("env DATABASE_PATH not set")
+		log.Fatal("env DATABASE_PIS not set")
 	}
 
 	// 2. 初始化日志
@@ -64,8 +64,9 @@ func main() {
 	switch cfg.Engine.AnalysisType {
 	case "python":
 		analysisEngine = &engine.PythonAnalysisEngine{
-			PythonPath: cfg.Engine.PythonPath,
-			ScriptPath: cfg.Engine.AnalysisScriptPath,
+			PythonPath:  cfg.Engine.PythonPath,
+			ScriptPath:  cfg.Engine.AnalysisScriptPath,
+			AnalysisDir: cfg.Store.AnalysisDir,
 		}
 	default:
 		analysisEngine = &engine.MockAnalysisEngine{
@@ -92,8 +93,8 @@ func main() {
 
 	// 8. 初始化 Handler
 	uploadH := handler.NewUploadHandler(taskSvc, pool, stitchEngine, analysisEngine, cfg.Store.UploadDir)
-	taskH := handler.NewTaskHandler(taskSvc)
-	historyH := handler.NewHistoryHandler(taskSvc)
+	taskH := handler.NewTaskHandler(taskSvc, cfg.Store.AnalysisDir)
+	historyH := handler.NewHistoryHandler(taskSvc, cfg.Store.AnalysisDir)
 	resultH := handler.NewResultHandler(taskSvc, cfg.Store.UploadDir)
 	analysisH := handler.NewAnalysisHandler(cfg.Store.AnalysisDir)
 	thumbH := handler.NewThumbnailHandler(taskSvc, cfg.Store.UploadDir)

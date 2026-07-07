@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,4 +36,22 @@ func (h *AnalysisHandler) GetAnalysis(c *gin.Context) {
 	}
 
 	c.File(filePath)
+}
+
+// listAnalysisFiles 扫描分析目录，返回该任务的 API URL 列表
+func listAnalysisFiles(analysisDir, taskID string) []string {
+	dir := filepath.Join(analysisDir, taskID)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var urls []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			urls = append(urls, "/api/analysis/"+taskID+"/"+e.Name())
+		}
+	}
+	sort.Strings(urls)
+	return urls
 }
