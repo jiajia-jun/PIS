@@ -75,8 +75,9 @@ onMounted(fetchHistory)
 </script>
 
 <style scoped>
-.page-title { margin-bottom: 24px; }
+.page-title { margin-bottom: 24px; font-size: 22px; font-weight: 700; }
 .task-id { font-family: monospace; font-size: 13px; }
-:deep(.clickable-row) { cursor: pointer; }
+:deep(.clickable-row) { cursor: pointer; transition: background 0.15s ease; }
+:deep(.clickable-row:hover) { background: rgba(64, 158, 255, 0.04) !important; }
 .pagination-wrap { margin-top: 24px; display: flex; justify-content: flex-end; }
 </style>

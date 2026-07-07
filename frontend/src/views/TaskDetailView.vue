@@ -28,10 +28,28 @@
       </div>
 
       <div class="result-section">
-        <h3>{{ $t('task.result') }}</h3>
+        <h3>{{ $t('task.result') }} <span class="preview-hint">{{ $t('task.preview_hint') }}</span></h3>
         <div class="result-image-wrap">
-          <img :src="thumbnailSrc" class="result-img result-thumb" alt="thumbnail" />
-          <img :src="resultSrc" class="result-img result-original" :class="{ loaded: originalLoaded }" alt="panorama" @load="originalLoaded = true" />
+          <el-image
+            :src="resultSrc"
+            :preview-src-list="[resultSrc]"
+            :preview-teleported="true"
+            fit="contain"
+            class="result-el-image"
+          >
+            <template #placeholder>
+              <img :src="thumbnailSrc" class="result-placeholder" alt="loading" />
+            </template>
+          </el-image>
+        </div>
+      </div>
+
+      <div v-if="task.input_urls?.length" class="input-section">
+        <h3>{{ $t('task.source_images') }}</h3>
+        <div class="input-grid">
+          <div v-for="url in task.input_urls" :key="url" class="input-item">
+            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img" />
+          </div>
         </div>
       </div>
 
@@ -57,7 +75,6 @@ const route = useRoute()
 const taskId = route.params.taskId
 const task = ref(null)
 const notFound = ref(false)
-const originalLoaded = ref(false)
 let timer = null
 
 const thumbnailSrc = computed(() => `/api/thumbnail/${taskId}`)
@@ -90,16 +107,70 @@ onUnmounted(() => clearInterval(timer))
 .loading-box p { margin-top: 16px; font-size: 16px; color: #666; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-box { padding: 60px 0; }
-.meta-bar { display: flex; gap: 32px; margin-bottom: 32px; padding: 16px 20px; background: #fff; border-radius: 8px; font-size: 14px; color: #666; }
-.meta-bar strong { color: #333; }
-.result-section h3, .analysis-section h3 { margin-bottom: 16px; font-size: 18px; }
-.result-image-wrap { position: relative; background: #fff; border-radius: 8px; overflow: hidden; }
-.result-img { width: 100%; display: block; }
-.result-thumb { filter: blur(8px); }
-.result-original { position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.4s ease; }
-.result-original.loaded { opacity: 1; }
+.meta-bar {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #666;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+.meta-bar strong { color: #333; font-size: 18px; }
+.result-section h3, .analysis-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+.preview-hint { font-size: 12px; color: #999; font-weight: 400; }
+.result-image-wrap {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+.result-el-image {
+  width: 100%;
+  display: block;
+  max-height: 500px;
+}
+.result-el-image :deep(img) { max-height: 500px; object-fit: contain; }
+.result-placeholder {
+  width: 100%;
+  display: block;
+  max-height: 500px;
+  object-fit: contain;
+  filter: blur(8px);
+}
+.input-section { margin-top: 40px; }
+.input-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+.input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.input-item {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.input-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.input-img { width: 100%; height: 100%; }
+.input-img :deep(img) { object-fit: cover; }
+
 .analysis-section { margin-top: 40px; }
 .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.chart-item { background: #fff; border-radius: 8px; overflow: hidden; }
+.chart-item {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.chart-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
 .chart-item img { width: 100%; display: block; }
 </style>

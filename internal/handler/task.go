@@ -2,6 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+
 	"pisweb/internal/model"
 	"pisweb/internal/service"
 
@@ -10,13 +14,14 @@ import (
 
 // TaskHandler 任务查询处理器
 type TaskHandler struct {
-	svc          *service.TaskService
-	analysisDir  string
+	svc         *service.TaskService
+	uploadDir   string
+	analysisDir string
 }
 
 // NewTaskHandler 创建 TaskHandler
-func NewTaskHandler(svc *service.TaskService, analysisDir string) *TaskHandler {
-	return &TaskHandler{svc: svc, analysisDir: analysisDir}
+func NewTaskHandler(svc *service.TaskService, uploadDir, analysisDir string) *TaskHandler {
+	return &TaskHandler{svc: svc, uploadDir: uploadDir, analysisDir: analysisDir}
 }
 
 // GetTask 查询单个任务状态 GET /api/task/:task_id
@@ -57,6 +62,9 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		if urls := listAnalysisFiles(h.analysisDir, task.ID); len(urls) > 0 {
 			resp["analysis_urls"] = urls
 		}
+		if urls := listInputFiles(h.uploadDir, task.ID); len(urls) > 0 {
+			resp["input_urls"] = urls
+		}
 	}
 
 	if task.Status == model.StatusFailed {
@@ -64,4 +72,22 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 	}
 
 	return resp
+}
+
+// listInputFiles 列出任务的原始上传图片 URL
+func listInputFiles(uploadDir, taskID string) []string {
+	dir := filepath.Join(uploadDir, taskID, "input")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var urls []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			urls = append(urls, "/api/input/"+taskID+"/"+e.Name())
+		}
+	}
+	sort.Strings(urls)
+	return urls
 }

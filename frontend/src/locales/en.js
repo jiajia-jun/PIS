@@ -26,6 +26,8 @@ export default {
     images: 'Images',
     not_found: 'Task not found',
     result: 'Stitched Result',
+    preview_hint: 'Click to view full size',
+    source_images: 'Source Images',
     charts: 'Analysis Charts',
   },
   history: {

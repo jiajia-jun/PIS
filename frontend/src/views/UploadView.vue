@@ -92,6 +92,10 @@ async function doUpload() {
 .upload-card {
   width: 100%;
   max-width: 560px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 .upload-title {
   font-size: 24px;
@@ -109,7 +113,7 @@ async function doUpload() {
 }
 .upload-icon {
   font-size: 48px;
-  color: #999;
+  color: #409EFF;
   margin-bottom: 12px;
 }
 .upload-text {
@@ -128,5 +132,15 @@ async function doUpload() {
 .upload-actions {
   margin-top: 24px;
   text-align: center;
+}
+.upload-actions .el-button {
+  min-width: 200px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.upload-actions .el-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.35);
 }
 </style>
