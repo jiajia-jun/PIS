@@ -48,7 +48,7 @@ import { uploadImages } from '../api'
 
 const { t } = useI18n()
 const router = useRouter()
-const MAX_SIZE = 50 * 1024 * 1024
+const MAX_SIZE = 200 * 1024 * 1024
 
 const fileList = ref([])
 const uploading = ref(false)

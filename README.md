@@ -124,7 +124,7 @@ PIS-web/
 │   │   ├── result.go
 │   │   ├── thumbnail.go
 │   │   └── analysis.go
-│   ├── middleware/             # 中间件（BodyLimit 50MB + 请求日志）
+│   ├── middleware/             # 中间件（BodyLimit 200MB + 请求日志）
 │   └── tool/thumbnail.go       # 内存缩放工具
 ├── docs/                       # 设计文档与接口文档
 ├── scripts/                    # Python 脚本占位（stitch.py / analysis.py）
@@ -161,8 +161,8 @@ Go 与 Python 通过"文件系统 + JSON"通信，详见 `docs/` 目录下的接
 
 | 约束 | 值 |
 |---|---|
-| 上传大小限制 | 50 MB |
-| Worker 数量 | 3 goroutines |
+| 上传大小限制 | 200 MB |
+| Worker 数量 | 20 goroutines |
 | Python 超时 | 30 秒 |
 | 上传文件自动清理 | 任务完成后 10 分钟（仅清理 input，result 保留） |
 | 拼接失败 | 不调用分析脚本，记录错误信息 |
