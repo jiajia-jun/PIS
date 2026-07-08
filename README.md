@@ -402,10 +402,9 @@ PIS-web/
 │           └── HistoryView.vue      # 历史页
 │
 ├── store/                      # 运行时数据（gitignore）
-├── logs/                       # access.log + task.log
+├── logs/                       # access.log + task.log（gitignore）
 ├── docs/                       # 设计文档与接口规范
-├── webTest/                    # 集成测试
-└── PIS_DATASET/                # 测试数据集
+└── webTest/                    # 集成测试
 ```
 
 ---
@@ -487,6 +486,7 @@ go test ./webTest/ -v -run TestConcurrentUpload     # 10 并发上传
 | `docs/数据分析组接口文档.md` | analysis.py 接口规范 |
 | `docs/数据交互规范.md` | 算法组 ↔ 分析组 ↔ 前端数据交换约定 |
 | `docs/错误信息汇总.md` | 全系统错误信息索引与流转路径 |
+| `docs/devlog/` | 开发日志（设计变更、差异分析报告等） |
 
 ## License
 
