@@ -12,7 +12,9 @@ export async function getTask(taskId) {
   return res.json()
 }
 
-export async function getHistory(page = 1, size = 10) {
-  const res = await fetch(`${BASE}/history?page=${page}&size=${size}`)
+export async function getHistory(page = 1, size = 10, status = '') {
+  const params = new URLSearchParams({ page, size })
+  if (status) params.set('status', status)
+  const res = await fetch(`${BASE}/history?${params}`)
   return res.json()
 }

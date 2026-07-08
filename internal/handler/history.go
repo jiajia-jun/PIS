@@ -21,10 +21,11 @@ func NewHistoryHandler(svc *service.TaskService, analysisDir string) *HistoryHan
 	return &HistoryHandler{svc: svc, analysisDir: analysisDir}
 }
 
-// GetHistory 分页查询历史记录 GET /api/history?page=1&size=10
+// GetHistory 分页查询历史记录 GET /api/history?page=1&size=10&status=completed
 func (h *HistoryHandler) GetHistory(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	status := c.Query("status") // 空字符串 = 全部
 
 	if page < 1 {
 		page = 1
@@ -33,7 +34,7 @@ func (h *HistoryHandler) GetHistory(c *gin.Context) {
 		size = 10
 	}
 
-	tasks, total, err := h.svc.GetHistory(page, size)
+	tasks, total, err := h.svc.GetHistory(page, size, status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "查询失败"})
 		return

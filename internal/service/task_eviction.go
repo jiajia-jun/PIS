@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const maxHistoryRecords = 30
+const maxHistoryRecords = 40
 
 // enforceHistoryLimit 淘汰机制：completed+failed 超过上限时删除最旧记录及文件
 func (s *TaskService) enforceHistoryLimit() {
