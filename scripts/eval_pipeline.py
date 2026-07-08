@@ -219,7 +219,7 @@ def build_full_metrics(data, case_name, image_count):
         "综合评分": {
             "匹配质量": _f(_extract_field(data, "分数_匹配质量")),
             "对齐精度": _f(_extract_field(data, "分数_对齐精度")),
-            "重叠一致性": _f(_extract_field(data, "分数_重叠一致性")),
+            "拼接一致性": _f(_extract_field(data, "分数_拼接一致性")),
             "画布利用率": _f(_extract_field(data, "分数_画布利用率")),
             "清晰度": _f(_extract_field(data, "分数_清晰度")),
             "运行效率": _f(_extract_field(data, "分数_运行效率")),
@@ -314,11 +314,11 @@ def generate_charts(data, output_dir):
     plt.close()
 
     # --- 2. 雷达图 ---
-    dims = ["匹配质量", "对齐精度", "重叠一致性", "画布利用率", "清晰度", "运行效率"]
+    dims = ["匹配质量", "对齐精度", "拼接一致性", "画布利用率", "清晰度", "运行效率"]
     score_map = {
         "匹配质量": _safe_float(_extract_field(data, "分数_匹配质量"), 0.0),
         "对齐精度": _safe_float(_extract_field(data, "分数_对齐精度"), 0.0),
-        "重叠一致性": _safe_float(_extract_field(data, "分数_重叠一致性"), 0.0),
+        "拼接一致性": _safe_float(_extract_field(data, "分数_拼接一致性"), 0.0),
         "画布利用率": _safe_float(_extract_field(data, "分数_画布利用率"), 0.0),
         "清晰度": _safe_float(_extract_field(data, "分数_清晰度"), 0.0),
         "运行效率": _safe_float(_extract_field(data, "分数_运行效率"), 0.0),
