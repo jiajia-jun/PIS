@@ -3,11 +3,11 @@ engine:
   analysis_type: python
   python_path: "E:/Dev/Compiler/Python/python.exe"
   stitch_script_path: "./scripts/stitch.py"
-  analysis_script_path: "./scripts/analysis.py"
+  analysis_script_path: "./scripts/eval_pipeline.py"
   cpp_binary: ""
 
 server:
-  host: "10.20.106.212"  # 留空=监听所有接口(0.0.0.0), 仅本地可设 127.0.0.1
+  host: "10.17.126.153"  # 留空=监听所有接口(0.0.0.0), 仅本地可设 127.0.0.1
   port: 8081
   upload_max_size_mb: 200
 

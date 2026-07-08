@@ -225,7 +225,7 @@ engine:
   analysis_type: mock         # 分析引擎: "mock" | "python"
   python_path: "python3"      # Python 解释器路径（可绝对路径）
   stitch_script_path: "./scripts/stitch.py"       # 拼接脚本路径
-  analysis_script_path: "./scripts/analysis.py"   # 分析脚本路径
+  analysis_script_path: "./scripts/eval_pipeline.py"   # 分析脚本路径
   cpp_binary: ""              # C++ 引擎可执行文件（预留）
 
 server:
@@ -285,11 +285,11 @@ python3 scripts/stitch.py ./store/uploads/{task_id}/
 #   输出: {任务目录}/result/result.jpg + meta.json + H_list.npy + inliers_list.pkl + result_info.json
 ```
 
-### 5.3 Python 分析脚本 `analysis.py`
+### 5.3 Python 分析脚本 `eval_pipeline.py`
 
 ```bash
 # Go 后端自动调用，也可手动执行用于调试
-python3 scripts/analysis.py ./store/uploads/{task_id}/ ./store/analysis/{task_id}/
+python3 scripts/eval_pipeline.py ./store/uploads/{task_id}/ ./store/analysis/{task_id}/
 
 # 参数: 2 个 — 任务目录 + 分析输出目录
 #   输入: {任务目录}/result/ 下的拼接产物
@@ -383,8 +383,8 @@ PIS-web/
 │
 ├── scripts/                    # Python 算法脚本
 │   ├── stitch.py               # 全景拼接（SIFT + RANSAC + OpenCV Stitcher）
-│   ├── analysis.py             # 分析适配器（桥接 + 图表生成）
-│   └── test5.py                # 数据分析核心（分析组维护）
+│   ├── eval_pipeline.py             # 分析适配器（桥接 + 图表生成）
+│   └── eval_core.py                # 数据分析核心（分析组维护）
 │
 ├── frontend/                   # Vue 3 前端
 │   ├── index.html              # HTML 入口（含 Splash 入场动画）
@@ -441,7 +441,7 @@ PIS-web/
 
 - Go → Python：CLI 参数传目录路径
 - Python → Go：`meta.json`（status/keypoints/cost_ms/error）+ `result.jpg`
-- stitch.py → analysis.py：`H_list.npy` + `inliers_list.pkl` + `result_info.json`
+- stitch.py → eval_pipeline.py：`H_list.npy` + `inliers_list.pkl` + `result_info.json`
 - Python `finally` 块保证 `meta.json` 必定写入，Go 不依赖 Python 退出码
 
 ### 8.4 历史淘汰
@@ -483,7 +483,7 @@ go test ./webTest/ -v -run TestConcurrentUpload     # 10 并发上传
 | `docs/系统架构设计文档.md` | 系统架构、模块设计、数据流、设计模式 |
 | `docs/后端设计文档.md` | 后端详细设计（模块、API、日志、配置） |
 | `docs/算法组接口文档.md` | stitch.py 接口规范 |
-| `docs/数据分析组接口文档.md` | analysis.py 接口规范 |
+| `docs/数据分析组接口文档.md` | eval_pipeline.py 接口规范 |
 | `docs/数据交互规范.md` | 算法组 ↔ 分析组 ↔ 前端数据交换约定 |
 | `docs/错误信息汇总.md` | 全系统错误信息索引与流转路径 |
 | `docs/devlog/` | 开发日志（设计变更、差异分析报告等） |
