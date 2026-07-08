@@ -30,12 +30,14 @@ import time
 import json
 import traceback
 import pickle
+import shutil
 
 import numpy as np
 import cv2
 
 # ===================== 常量 =====================
 
+MAX_IMAGES = 20        # 最大输入图片数（与 Go 后端对齐）
 MAX_SIZE = 2000        # 预处理缩放最长边阈值
 CONFIDENCE = 0.6       # 匹配置信度阈值
 RESULT_MAX_EDGE = 4000 # 全景图最长边限制
@@ -105,11 +107,22 @@ def load_images(input_dir):
 
 
 def write_result(result_dir, pano):
-    """将全景图写入 result/result.jpg，失败时抛出 IOError"""
+    """将全景图写入 result/result.jpg，失败时抛出 IOError 并附带原因"""
     result_path = os.path.join(result_dir, "result.jpg")
     success = cv2.imwrite(result_path, pano)
     if not success:
-        raise IOError(f"写入拼接结果失败: {result_path}")
+        # 区分磁盘空间不足与其他原因
+        try:
+            usage = shutil.disk_usage(result_dir)
+            free_mb = usage.free / (1024 * 1024)
+            needed_mb = pano.nbytes / (1024 * 1024)
+            if free_mb < needed_mb:
+                raise IOError(
+                    f"磁盘空间不足: 需要 {needed_mb:.1f} MB, 剩余 {free_mb:.1f} MB ({result_path})"
+                )
+        except (OSError, AttributeError):
+            pass
+        raise IOError(f"写入拼接结果失败（可能磁盘满或权限不足）: {result_path}")
     return result_path
 
 
@@ -151,25 +164,6 @@ def write_result_info(result_dir, result_info):
 
 # ===================== 图像处理 =====================
 
-def count_keypoints(images):
-    """
-    对每张图做 SIFT 特征检测，返回总特征点数.
-    SIFT 不可用时回退到 ORB.
-    仅用于前端展示，不影响拼接流程.
-    """
-    total = 0
-    try:
-        detector = cv2.SIFT_create()
-    except AttributeError:
-        # opencv-python-headless 可能不含 SIFT（non-free 模块）
-        detector = cv2.ORB_create()
-
-    for img in images:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        kp = detector.detect(gray, None)
-        total += len(kp)
-    return total
-
 
 def crop_black_border(img):
     """自动裁剪四周全黑区域"""
@@ -204,21 +198,24 @@ def _get_sift():
 def _detect_all(images):
     """
     对所有图片一次性提取 SIFT 特征，避免重复计算.
-    每张图只 detectAndCompute 一次，缓存 kp/des 供后续逐对匹配复用.
-    返回 [(kp, des), ...]，失败的单张图对应位置为 (None, None).
+    返回 (features, total_keypoints):
+      features         -- [(kp, des), ...]，失败的单张对应 (None, None)
+      total_keypoints  -- 所有图片特征点总数（供前端展示）
     """
     sift = _get_sift()
     results = []
+    total_kp = 0
     for img in images:
         try:
             kp, des = sift.detectAndCompute(img, None)
             if des is not None and len(des) >= 4:
                 results.append((kp, des))
+                total_kp += len(kp)
             else:
                 results.append((None, None))
         except cv2.error:
             results.append((None, None))
-    return results
+    return results, total_kp
 
 
 def match_pair(kp1, des1, kp2, des2, lowe_ratio=LOWE_RATIO):
@@ -274,10 +271,9 @@ def match_adjacent_pairs(images):
     对所有相邻图片对做特征匹配.
     先一次性提取所有图片的 SIFT 特征（避免重复 detectAndCompute），
     再逐对匹配相邻图片.
-    返回 (H_list, inliers_list, result_info)
+    返回 (H_list, inliers_list, result_info, total_keypoints)
     """
-    # 先一次性检测所有图片的特征，避免重复计算
-    features = _detect_all(images)
+    features, total_kp = _detect_all(images)
 
     H_list = []
     inliers_list = []
@@ -298,7 +294,7 @@ def match_adjacent_pairs(images):
             "inlier_num": inlier_num,
         })
 
-    return H_list, inliers_list, result_info
+    return H_list, inliers_list, result_info, total_kp
 
 
 # ===================== 拼接核心 =====================
@@ -308,17 +304,24 @@ def stitch_images(images, confidence=CONFIDENCE):
     使用 OpenCV Stitcher 拼接.
     球面模式(PANORAMA)失败后自动回退平面模式(SCAN).
     """
+    def _configure(st):
+        """统一配置 Stitcher: 置信度 + 关闭波浪校正"""
+        if hasattr(st, 'setPanoConfidenceThresh'):
+            st.setPanoConfidenceThresh(confidence)
+        # 关闭 wave correction: 用户上传顺序不一定是水平排列，
+        # 开启波浪校正会导致非水平序列产生畸变
+        if hasattr(st, 'setWaveCorrection'):
+            st.setWaveCorrection(False)
+
     # ---- 球面拼接 ----
     stitcher = cv2.Stitcher.create(_STITCHER_PANORAMA)
-    if hasattr(stitcher, 'setPanoConfidenceThresh'):
-        stitcher.setPanoConfidenceThresh(confidence)
+    _configure(stitcher)
     status, pano = stitcher.stitch(images)
 
     # ---- 回退：平面拼接 ----
     if status != cv2.Stitcher_OK:
         stitcher2 = cv2.Stitcher.create(_STITCHER_SCAN)
-        if hasattr(stitcher2, 'setPanoConfidenceThresh'):
-            stitcher2.setPanoConfidenceThresh(confidence)
+        _configure(stitcher2)
         status, pano = stitcher2.stitch(images)
 
     # ---- 错误码映射 ----
@@ -373,11 +376,15 @@ def main():
                 f"有效图片不足（仅 {len(images)} 张），至少需要 2 张图片才能拼接"
             )
 
-        # ---- 3. 统计特征点 ----
-        keypoints = count_keypoints(images)
+        if len(images) > MAX_IMAGES:
+            print(
+                f"警告: 输入图片 {len(images)} 张超过上限 {MAX_IMAGES}，仅处理前 {MAX_IMAGES} 张",
+                file=sys.stderr
+            )
+            images = images[:MAX_IMAGES]
 
-        # ---- 4. 相邻图对特征匹配（产出分析组中间数据） ----
-        H_list, inliers_list, result_info = match_adjacent_pairs(images)
+        # ---- 3. 相邻图对特征匹配（产出分析组中间数据） ----
+        H_list, inliers_list, result_info, keypoints = match_adjacent_pairs(images)
 
         os.makedirs(result_dir, exist_ok=True)
 
@@ -389,18 +396,19 @@ def main():
             with open(os.path.join(result_dir, "inliers_list.pkl"), "wb") as f:
                 pickle.dump(inliers_list, f)
 
-        # ---- 5. 执行拼接 ----
+        # ---- 4. 执行拼接 ----
         pano = stitch_images(images)
 
-        # ---- 6. 后处理 ----
+        # ---- 5. 后处理 ----
         pano = resize_if_needed(pano)
         pano = crop_black_border(pano)
 
-        # ---- 7. 写入结果 ----
+        # ---- 6. 写入结果 ----
         write_result(result_dir, pano)
 
-        # ---- 8. 写入分析中间数据（拼接成功后才写 result_info） ----
-        result_info["total_time"] = round((time.time() - start_time) * 1000)
+        # ---- 7. 写入分析中间数据（拼接成功后才写，cost_ms 与 meta.json 一致） ----
+        cost_ms = int((time.time() - start_time) * 1000)
+        result_info["total_time"] = cost_ms
         write_result_info(result_dir, result_info)
 
     except Exception as e:
