@@ -411,10 +411,9 @@ class PanoramaEvaluator:
             raise RuntimeError("计算重投影误差失败：" + str(e))
 
     def calc_panorama_ssim(self):
-        """直接在最终全景图上评估拼接质量：网格采样跨切片 SSIM（不依赖 H 矩阵）"""
+        """1像素偏移 SSIM：滑动窗口对比自身微小平移，检测拼接缝/鬼影（不依赖 H 矩阵）"""
         try:
             gray = cv2.cvtColor(self.panorama, cv2.COLOR_BGR2GRAY)
-            h, w = gray.shape
 
             # 有效区域 mask（排除黑边）
             valid = gray > 10
@@ -430,46 +429,38 @@ class PanoramaEvaluator:
             r_min, r_max = valid_rows.min(), valid_rows.max()
             c_min, c_max = valid_cols.min(), valid_cols.max()
 
-            # 网格采样：在有效区域内等距采样
-            HALF = 24
-            GRID = 6  # 6x6 网格，每个方向最多 36 个采样点
-
-            stride_y = max((r_max - r_min) // GRID, HALF * 2)
-            stride_x = max((c_max - c_min) // GRID, HALF * 2)
+            # 滑动窗口参数：32×32 窗口，步长 24，覆盖整个有效区域
+            WIN = 32
+            STRIDE = 24
 
             ssim_scores = []
-            np.random.seed(42)
 
-            for cy in range(r_min + HALF, r_max - HALF, stride_y):
-                for cx in range(c_min + HALF, c_max - HALF, stride_x):
-                    # 在网格点附近随机微调，避免对齐偏差
-                    cy_jitter = cy + np.random.randint(-HALF//2, HALF//2)
-                    cx_jitter = cx + np.random.randint(-HALF//2, HALF//2)
-                    cy_jitter = max(r_min + HALF, min(r_max - HALF, cy_jitter))
-                    cx_jitter = max(c_min + HALF, min(c_max - HALF, cx_jitter))
-
-                    if not valid[cy_jitter, cx_jitter]:
+            for cy in range(r_min + WIN, r_max - WIN, STRIDE):
+                for cx in range(c_min + WIN, c_max - WIN, STRIDE):
+                    if not valid[cy, cx]:
                         continue
 
-                    # 垂直切片：左 vs 右
-                    left = gray[cy_jitter-HALF:cy_jitter+HALF, cx_jitter-HALF:cx_jitter]
-                    right = gray[cy_jitter-HALF:cy_jitter+HALF, cx_jitter:cx_jitter+HALF]
-                    if left.shape == right.shape and left.size >= 400:
-                        try:
-                            s = structural_similarity(left, right, data_range=255)
-                            ssim_scores.append(float(max(0, s)))
-                        except Exception:
-                            pass
+                    window = gray[cy:cy + WIN, cx:cx + WIN]
+                    if window.shape != (WIN, WIN):
+                        continue
 
-                    # 水平切片：上 vs 下
-                    top = gray[cy_jitter-HALF:cy_jitter, cx_jitter-HALF:cx_jitter+HALF]
-                    bottom = gray[cy_jitter:cy_jitter+HALF, cx_jitter-HALF:cx_jitter+HALF]
-                    if top.shape == bottom.shape and top.size >= 400:
-                        try:
-                            s = structural_similarity(top, bottom, data_range=255)
-                            ssim_scores.append(float(max(0, s)))
-                        except Exception:
-                            pass
+                    # 水平偏移 1px：原窗口 vs 右移 1px → 检测垂直拼缝
+                    w_h = window[:, :-1]
+                    w_h_shifted = window[:, 1:]
+                    try:
+                        s = structural_similarity(w_h, w_h_shifted, data_range=255)
+                        ssim_scores.append(float(max(0, s)))
+                    except Exception:
+                        pass
+
+                    # 垂直偏移 1px：原窗口 vs 下移 1px → 检测水平拼缝
+                    w_v = window[:-1, :]
+                    w_v_shifted = window[1:, :]
+                    try:
+                        s = structural_similarity(w_v, w_v_shifted, data_range=255)
+                        ssim_scores.append(float(max(0, s)))
+                    except Exception:
+                        pass
 
             if not ssim_scores:
                 return {"全景SSIM": 0.0, "全景SSIM_min": 0.0, "全景SSIM_std": 0.0,
