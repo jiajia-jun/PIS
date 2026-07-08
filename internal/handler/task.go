@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 
+	"time"
+
 	"pisweb/internal/model"
 	"pisweb/internal/service"
 
@@ -51,7 +53,7 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		"task_id":     task.ID,
 		"status":      task.Status,
 		"image_count": task.ImageCount,
-		"created_at":  task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		"created_at":  task.CreatedAt.Format(time.RFC3339),
 	}
 
 	if task.Status == model.StatusCompleted {

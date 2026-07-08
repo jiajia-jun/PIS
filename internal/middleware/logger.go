@@ -25,12 +25,21 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 			fullPath = rawPath + "?" + rawQuery
 		}
 
-		logger.Info("",
+		fields := []zap.Field{
 			zap.String("method", c.Request.Method),
 			zap.String("path", fullPath),
 			zap.Int("status", statusCode),
 			zap.Duration("duration", latency),
-		)
+		}
+
+		switch {
+		case statusCode >= 500:
+			logger.Error("", fields...)
+		case statusCode >= 400:
+			logger.Warn("", fields...)
+		default:
+			logger.Info("", fields...)
+		}
 	}
 }
 

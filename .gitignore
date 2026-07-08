@@ -1,3 +1,11 @@
 /.claude
 CLAUDE.md
 webTest/store/
+docs/论文/
+核心算法说明.txt
+全景拼接评估结果.csv
+全景拼接评估结果.json
+scripts/__pycache__/
+logs/
+pis-web.exe
+webTest/logs/

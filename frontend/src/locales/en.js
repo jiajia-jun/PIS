@@ -41,4 +41,12 @@ export default {
     cost: 'Cost',
     created: 'Created',
   },
+  eval: {
+    title: 'Stitch Quality Assessment',
+    metric: 'Metric',
+    value: 'Value',
+    grade: 'Grade',
+    no_radar: 'Radar chart unavailable',
+    detail_title: 'Detailed Data',
+  },
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"pisweb/internal/service"
 
@@ -44,7 +45,7 @@ func (h *HistoryHandler) GetHistory(c *gin.Context) {
 			"task_id":     task.ID,
 			"status":      task.Status,
 			"image_count": task.ImageCount,
-			"created_at":  task.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"created_at":  task.CreatedAt.Format(time.RFC3339),
 		}
 
 		if task.Status == "completed" {

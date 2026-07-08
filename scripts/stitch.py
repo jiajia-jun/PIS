@@ -12,8 +12,11 @@ PIS-web 全景图像拼接脚本
     {任务目录}/input/  -- Go 后端已创建，JPG/PNG 原图
 
 产出:
-    {任务目录}/result/result.jpg  -- 拼接结果（失败时不生成）
-    {任务目录}/result/meta.json   -- 元信息（成功/失败都必须写）
+    {任务目录}/result/result.jpg       -- 拼接结果（失败时不生成）
+    {任务目录}/result/meta.json        -- 元信息（成功/失败都必须写）
+    {任务目录}/result/result_info.json -- 匹配统计（分析组用）
+    {任务目录}/result/H_list.npy       -- 相邻图对的单应矩阵列表
+    {任务目录}/result/inliers_list.npy -- 相邻图对的内点坐标列表
 
 容错:
     任何异常均 catch → 写 meta.json (status="error") → exit 0
@@ -26,6 +29,7 @@ import glob
 import time
 import json
 import traceback
+import pickle
 
 import numpy as np
 import cv2
@@ -35,6 +39,12 @@ import cv2
 MAX_SIZE = 2000        # 预处理缩放最长边阈值
 CONFIDENCE = 0.6       # 匹配置信度阈值
 RESULT_MAX_EDGE = 4000 # 全景图最长边限制
+LOWE_RATIO = 0.7       # Lowe's ratio test 阈值
+
+# OpenCV 4.x 常量兼容: Stitcher_SCAN → Stitcher_SCANS
+_STITCHER_PANORAMA = cv2.Stitcher_PANORAMA
+_STITCHER_SCAN = getattr(cv2, 'Stitcher_SCANS',
+                 getattr(cv2, 'Stitcher_SCAN', 1))
 
 
 # ===================== 文件 I/O =====================
@@ -51,8 +61,14 @@ def load_images(input_dir):
 
     exts = ('*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG')
     img_paths = []
+    seen = set()
     for ext in exts:
-        img_paths.extend(glob.glob(os.path.join(input_dir, ext)))
+        for p in glob.glob(os.path.join(input_dir, ext)):
+            # Windows 上 glob 大小写不敏感，同名文件被多个模式重复匹配
+            key = os.path.normcase(os.path.normpath(p))
+            if key not in seen:
+                seen.add(key)
+                img_paths.append(p)
     img_paths = sorted(img_paths)
 
     if not img_paths:
@@ -122,6 +138,17 @@ def write_meta(result_dir, status, keypoints, cost_ms, error):
         traceback.print_exc(file=sys.stderr)
 
 
+def write_result_info(result_dir, result_info):
+    """写 result_info.json 到 result/ 目录，供分析组使用"""
+    os.makedirs(result_dir, exist_ok=True)
+    info_path = os.path.join(result_dir, "result_info.json")
+    try:
+        with open(info_path, "w", encoding="utf-8") as f:
+            json.dump(result_info, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"警告: 写入 result_info.json 失败: {e}", file=sys.stderr)
+
+
 # ===================== 图像处理 =====================
 
 def count_keypoints(images):
@@ -164,6 +191,101 @@ def resize_if_needed(img, max_edge=RESULT_MAX_EDGE):
     return img
 
 
+# ===================== 特征匹配（为分析组产出中间数据） =====================
+
+def _get_sift():
+    """创建 SIFT 检测器，不可用时回退到 ORB"""
+    try:
+        return cv2.SIFT_create()
+    except AttributeError:
+        return cv2.ORB_create()
+
+
+def match_pair(img1, img2, lowe_ratio=LOWE_RATIO):
+    """
+    对相邻图片对做 SIFT + BFMatcher + knnMatch + RANSAC 匹配.
+    返回 (H, inliers, total_matches, inlier_num)
+
+    H             -- 3x3 单应矩阵，失败时为 None
+    inliers       -- Nx4 匹配点坐标 [x1,y1,x2,y2]，失败时为 None
+    total_matches -- knnMatch 产生的总匹配数
+    inlier_num    -- RANSAC 通过的内点数
+    """
+    sift = _get_sift()
+    kp1, des1 = sift.detectAndCompute(img1, None)
+    kp2, des2 = sift.detectAndCompute(img2, None)
+
+    if des1 is None or des2 is None or len(des1) < 4 or len(des2) < 4:
+        return None, None, 0, 0
+
+    # BFMatcher + knn
+    bf = cv2.BFMatcher()
+    try:
+        raw_matches = bf.knnMatch(des1, des2, k=2)
+    except cv2.error:
+        return None, None, 0, 0
+
+    # Lowe's ratio test
+    good = []
+    for pair in raw_matches:
+        if len(pair) < 2:
+            continue
+        m, n = pair
+        if m.distance < lowe_ratio * n.distance:
+            good.append(m)
+
+    total_matches = len(good)
+
+    if len(good) < 4:
+        return None, None, 0, 0
+
+    src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+    H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+    if H is None:
+        return None, None, total_matches, 0
+
+    mask_1d = mask.ravel().astype(bool)
+    inlier_num = int(np.sum(mask_1d))
+
+    # 内点坐标: [x1, y1, x2, y2]
+    s = src_pts[mask_1d].reshape(-1, 2)
+    d = dst_pts[mask_1d].reshape(-1, 2)
+    inliers = np.hstack([s, d])
+
+    return H, inliers, total_matches, inlier_num
+
+
+def match_adjacent_pairs(images):
+    """
+    对所有相邻图片对做特征匹配.
+    返回 (H_list, inliers_list, result_info)
+
+    H_list       -- [3x3 ndarray, ...] 每个相邻对的单应矩阵
+    inliers_list -- [Nx4 ndarray, ...] 每个相邻对的内点坐标
+    result_info  -- {"pairs": [{total_matches, inlier_num}, ...]}
+    """
+    H_list = []
+    inliers_list = []
+    result_info = {"pairs": []}
+
+    for i in range(len(images) - 1):
+        H, inliers, total, inlier_num = match_pair(images[i], images[i + 1])
+
+        if H is not None:
+            H_list.append(H)
+        if inliers is not None:
+            inliers_list.append(inliers)
+
+        result_info["pairs"].append({
+            "total_matches": total,
+            "inlier_num": inlier_num,
+        })
+
+    return H_list, inliers_list, result_info
+
+
 # ===================== 拼接核心 =====================
 
 def stitch_images(images, confidence=CONFIDENCE):
@@ -172,14 +294,14 @@ def stitch_images(images, confidence=CONFIDENCE):
     球面模式(PANORAMA)失败后自动回退平面模式(SCAN).
     """
     # ---- 球面拼接 ----
-    stitcher = cv2.Stitcher.create(cv2.Stitcher_PANORAMA)
+    stitcher = cv2.Stitcher.create(_STITCHER_PANORAMA)
     if hasattr(stitcher, 'setPanoConfidenceThresh'):
         stitcher.setPanoConfidenceThresh(confidence)
     status, pano = stitcher.stitch(images)
 
     # ---- 回退：平面拼接 ----
     if status != cv2.Stitcher_OK:
-        stitcher2 = cv2.Stitcher.create(cv2.Stitcher_SCAN)
+        stitcher2 = cv2.Stitcher.create(_STITCHER_SCAN)
         if hasattr(stitcher2, 'setPanoConfidenceThresh'):
             stitcher2.setPanoConfidenceThresh(confidence)
         status, pano = stitcher2.stitch(images)
@@ -239,15 +361,32 @@ def main():
         # ---- 3. 统计特征点 ----
         keypoints = count_keypoints(images)
 
-        # ---- 4. 执行拼接 ----
+        # ---- 4. 相邻图对特征匹配（产出分析组中间数据） ----
+        H_list, inliers_list, result_info = match_adjacent_pairs(images)
+
+        os.makedirs(result_dir, exist_ok=True)
+
+        # 保存 H 矩阵：stack 成 (n,3,3) float64 数组（无 pickle，保证 dtype 纯净）
+        if H_list:
+            np.save(os.path.join(result_dir, "H_list.npy"), np.stack(H_list))
+        # 保存内点列表：用 pickle 处理不定长数组
+        if inliers_list:
+            with open(os.path.join(result_dir, "inliers_list.pkl"), "wb") as f:
+                pickle.dump(inliers_list, f)
+
+        # ---- 5. 执行拼接 ----
         pano = stitch_images(images)
 
-        # ---- 5. 后处理 ----
+        # ---- 6. 后处理 ----
         pano = resize_if_needed(pano)
         pano = crop_black_border(pano)
 
-        # ---- 6. 写入结果 ----
+        # ---- 7. 写入结果 ----
         write_result(result_dir, pano)
+
+        # ---- 8. 写入分析中间数据（拼接成功后才写 result_info） ----
+        result_info["total_time"] = round((time.time() - start_time) * 1000)
+        write_result_info(result_dir, result_info)
 
     except Exception as e:
         status = "error"

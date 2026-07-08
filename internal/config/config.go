@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -57,8 +58,13 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	// 从环境变量读取 MySQL 连接串（在环境变量里面气不气）
+	// 从环境变量读取 MySQL 连接串
 	cfg.DSN = os.Getenv("DATABASE_PIS")
+
+	// 自动补全时区参数：未指定 loc 时默认使用本地时区，避免时间偏移 8 小时
+	if !strings.Contains(cfg.DSN, "loc=") {
+		cfg.DSN += "&loc=Local"
+	}
 
 	return cfg, nil
 }
