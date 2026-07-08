@@ -29,21 +29,50 @@
 
       <div class="result-section">
         <h3>{{ $t('task.result') }} <span class="preview-hint">{{ $t('task.preview_hint') }}</span></h3>
-        <div
-          class="result-image-wrap"
-          ref="zoomWrap"
-          @mousemove="onZoomMove"
-          @mouseenter="onZoomEnter"
-          @mouseleave="onZoomLeave"
-        >
-          <img :src="resultSrc" class="result-el-image" alt="panorama" />
-          <div
-            v-show="zooming"
-            class="zoom-lens"
-            :style="lensStyle"
-          ></div>
+        <div class="result-image-wrap" @click="openViewer">
+          <el-image
+            :src="resultSrc"
+            :preview-src-list="[]"
+            :preview-teleported="false"
+            fit="contain"
+            class="result-el-image"
+          >
+            <template #placeholder>
+              <img :src="thumbnailSrc" class="result-placeholder" alt="loading" />
+            </template>
+          </el-image>
+          <div class="result-overlay">
+            <el-icon :size="48"><ZoomIn /></el-icon>
+          </div>
         </div>
       </div>
+
+      <!-- ===== 全屏大图查看器 ===== -->
+      <Teleport to="body">
+        <div
+          v-if="viewerOpen"
+          class="img-viewer-mask"
+          @mousedown="onViewerBgDown"
+          @wheel.prevent="onViewerWheel"
+        >
+          <div class="img-viewer-toolbar">
+            <span class="viewer-zoom-label">{{ Math.round(viewerScale * 100) }}%</span>
+            <el-button circle size="small" @click="viewerScale = Math.min(5, viewerScale + 0.5)"><el-icon><ZoomIn /></el-icon></el-button>
+            <el-button circle size="small" @click="viewerScale = Math.max(0.2, viewerScale - 0.5)"><el-icon><ZoomOut /></el-icon></el-button>
+            <el-button circle size="small" @click="viewerScale = 1; viewerX = 0; viewerY = 0">{{ $t('task.reset') }}</el-button>
+            <el-button circle size="small" type="danger" @click="closeViewer"><el-icon><Close /></el-icon></el-button>
+          </div>
+          <img
+            ref="viewerImg"
+            :src="resultSrc"
+            class="img-viewer-main"
+            :style="viewerImgStyle"
+            @mousedown.prevent="onViewerDragStart"
+            @load="onViewerImgLoad"
+            draggable="false"
+          />
+        </div>
+      </Teleport>
 
       <!-- ===== 拼接质量评估摘要区 ===== -->
       <div v-if="hasEvalData" class="eval-summary">
@@ -174,7 +203,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, ZoomIn, ZoomOut, Close } from '@element-plus/icons-vue'
 import { getTask } from '../api'
 
 const route = useRoute()
@@ -184,38 +213,75 @@ const notFound = ref(false)
 const tableData = ref([])
 let timer = null
 
-// ---- 鼠标位置缩放（放大镜） ----
-const zoomWrap = ref(null)
-const zooming = ref(false)
-const lensStyle = ref({})
+// ---- 全屏大图查看器 ----
+const viewerOpen = ref(false)
+const viewerImg = ref(null)
+const viewerScale = ref(1)
+const viewerX = ref(0)
+const viewerY = ref(0)
+const dragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
+const imgStart = ref({ x: 0, y: 0 })
+const imgNatural = ref({ w: 0, h: 0 })
 
-const ZOOM = 2.5
-const LENS = 180  // 放大镜尺寸 px
+const viewerImgStyle = computed(() => ({
+  transform: `translate(${viewerX.value}px, ${viewerY.value}px) scale(${viewerScale.value})`,
+  cursor: dragging.value ? 'grabbing' : 'grab',
+  transition: dragging.value ? 'none' : 'transform 0.15s ease-out',
+}))
 
-function onZoomEnter() { zooming.value = true }
-function onZoomLeave() { zooming.value = false }
-function onZoomMove(e) {
-  const wrap = zoomWrap.value
-  if (!wrap) return
-  const rect = wrap.getBoundingClientRect()
-  const x = e.clientX - rect.left   // 鼠标在容器内 X
-  const y = e.clientY - rect.top    // 鼠标在容器内 Y
-
-  // 放大镜背景图为结果大图，background-size 按容器尺寸 × ZOOM 放大
-  // background-position 把鼠标指向的点对齐到放大镜中心
-  const bgX = -(x * ZOOM) + LENS / 2
-  const bgY = -(y * ZOOM) + LENS / 2
-
-  lensStyle.value = {
-    left: `${x - LENS / 2}px`,
-    top: `${y - LENS / 2}px`,
-    width: `${LENS}px`,
-    height: `${LENS}px`,
-    backgroundImage: `url(${resultSrc.value})`,
-    backgroundSize: `${rect.width * ZOOM}px ${rect.height * ZOOM}px`,
-    backgroundPosition: `${bgX}px ${bgY}px`,
-    backgroundRepeat: 'no-repeat',
+function openViewer() { viewerOpen.value = true; viewerScale.value = 1; viewerX.value = 0; viewerY.value = 0 }
+function closeViewer() { viewerOpen.value = false }
+function onViewerImgLoad() {
+  if (viewerImg.value) {
+    imgNatural.value = { w: viewerImg.value.naturalWidth, h: viewerImg.value.naturalHeight }
   }
+}
+
+// 滚轮缩放，以鼠标位置为中心
+function onViewerWheel(e) {
+  const img = viewerImg.value
+  if (!img) return
+  const rect = img.parentElement.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+
+  const oldScale = viewerScale.value
+  let newScale = oldScale * (e.deltaY < 0 ? 1.15 : 0.85)
+  newScale = Math.max(0.2, Math.min(5, newScale))
+
+  // 缩放中心 = 鼠标在图像上的位置 (相对于图像左上角)
+  const ratio = newScale / oldScale
+  viewerX.value = mx - ratio * (mx - viewerX.value)
+  viewerY.value = my - ratio * (my - viewerY.value)
+  viewerScale.value = newScale
+}
+
+// 拖拽
+function onViewerDragStart(e) {
+  if (viewerScale.value <= 1 && e.target === viewerImg.value) {
+    // 未放大时仍允许拖拽观察边缘
+  }
+  dragging.value = true
+  dragStart.value = { x: e.clientX, y: e.clientY }
+  imgStart.value = { x: viewerX.value, y: viewerY.value }
+  window.addEventListener('mousemove', onViewerDragMove)
+  window.addEventListener('mouseup', onViewerDragEnd)
+}
+function onViewerDragMove(e) {
+  if (!dragging.value) return
+  viewerX.value = imgStart.value.x + (e.clientX - dragStart.value.x)
+  viewerY.value = imgStart.value.y + (e.clientY - dragStart.value.y)
+}
+function onViewerDragEnd() {
+  dragging.value = false
+  window.removeEventListener('mousemove', onViewerDragMove)
+  window.removeEventListener('mouseup', onViewerDragEnd)
+}
+
+// 点击背景关闭（点图片本身不关闭）
+function onViewerBgDown(e) {
+  if (e.target === e.currentTarget) closeViewer()
 }
 
 // ---- 评估数据 ----
@@ -373,24 +439,68 @@ onUnmounted(() => clearInterval(timer))
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  cursor: none;
+  cursor: pointer;
   max-height: 500px;
+}
+.result-image-wrap:hover .result-overlay { opacity: 1; }
+.result-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.35);
+  opacity: 0;
+  transition: opacity .25s;
+  pointer-events: none;
+  color: #fff;
 }
 .result-el-image {
   width: 100%;
   display: block;
   max-height: 500px;
+}
+.result-el-image :deep(img) { max-height: 500px; object-fit: contain; }
+.result-placeholder {
+  width: 100%;
+  display: block;
+  max-height: 500px;
   object-fit: contain;
+  filter: blur(8px);
+}
+
+/* ===== 全屏大图查看器 ===== */
+.img-viewer-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0,0,0,.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.img-viewer-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.viewer-zoom-label {
+  color: #ccc;
+  font-size: 13px;
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.img-viewer-main {
+  max-width: 90vw;
+  max-height: 90vh;
   user-select: none;
   -webkit-user-drag: none;
-}
-.zoom-lens {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.8);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
-  pointer-events: none;
-  z-index: 10;
 }
 
 /* ===== 评估摘要区 ===== */
