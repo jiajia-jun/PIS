@@ -9,6 +9,7 @@ import sys
 import signal
 import base64
 import io
+import pickle
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional, Any, Union
 from pathlib import Path
@@ -113,7 +114,7 @@ _METRIC_FIELD_ORDER = [
     "\u7528\u4f8b\u540d\u79f0", "\u72b6\u6001",
     "\u603b\u5339\u914d\u5bf9\u6570", "RANSAC\u5185\u70b9\u6570", "\u5185\u70b9\u7387",
     "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u91cd\u6295\u5f71\u4e2d\u4f4d\u6570(\u50cf\u7d20)", "\u91cd\u6295\u5f71P95(\u50cf\u7d20)",
-    "\u91cd\u53e0\u533aSSIM", "\u91cd\u53e0\u533aPSNR", "\u91cd\u53e0\u533aMAE",
+    "\u5168\u666fSSIM", "\u91cd\u53e0\u533aPSNR", "\u91cd\u53e0\u533aMAE",
     "\u6709\u6548\u753b\u5e03\u5360\u6bd4", "\u5168\u666f\u56fe\u5bbd\u9ad8\u6bd4",
     "\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", "\u5e73\u5747\u68af\u5ea6\u6bd4",
     "\u603b\u8017\u65f6(\u79d2)",
@@ -247,32 +248,56 @@ class PanoramaEvaluator:
             if os.path.exists(json_path):
                 with open(json_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                json_valid, _ = _validate_result_json(data)
-                if json_valid:
+                # 新格式：有 pairs 数组（stitch.py 产出）；旧格式：顶层 total_matches+inlier_num
+                if "pairs" in data:
                     self.info = data
+                else:
+                    json_valid, _ = _validate_result_json(data)
+                    if json_valid:
+                        self.info = data
         except Exception:
             self.info = {}
 
         h_path = os.path.join(self.result_path, CONFIG["h_file"])
         inliers_path = os.path.join(self.result_path, CONFIG["inliers_file"])
 
+        # 优先读取多对格式（stitch.py 新产出），兼容旧单对格式
+        h_list_path = os.path.join(self.result_path, "H_list.npy")
+        self.H_list = []
         self.H = None
         try:
-            if os.path.exists(h_path):
+            if os.path.exists(h_list_path):
+                h_data = np.load(h_list_path, allow_pickle=True)
+                if h_data.ndim == 3 and h_data.shape[1:] == (3, 3):
+                    self.H_list = [h_data[i] for i in range(h_data.shape[0])]
+            elif os.path.exists(h_path):
                 h_data = np.load(h_path, allow_pickle=True)
                 if h_data.shape == (3, 3):
-                    self.H = h_data
+                    self.H_list = [h_data]
         except Exception:
-            self.H = None
+            self.H_list = []
+        if self.H_list:
+            self.H = self.H_list[0]
 
+        inl_pkl = os.path.join(self.result_path, "inliers_list.pkl")
+        self.inliers_list = []
         self.inliers = None
         try:
-            if os.path.exists(inliers_path):
+            if os.path.exists(inl_pkl):
+                with open(inl_pkl, "rb") as f:
+                    inliers_data = pickle.load(f)
+                if isinstance(inliers_data, list):
+                    self.inliers_list = [arr for arr in inliers_data
+                                         if isinstance(arr, np.ndarray)
+                                         and arr.ndim == 2 and arr.shape[1] == 4 and len(arr) > 0]
+            elif os.path.exists(inliers_path):
                 inlier_data = np.load(inliers_path, allow_pickle=True)
-                if len(inlier_data.shape) == 2 and inlier_data.shape[1] == 4 and len(inlier_data) > 0:
-                    self.inliers = inlier_data
+                if inlier_data.ndim == 2 and inlier_data.shape[1] == 4 and len(inlier_data) > 0:
+                    self.inliers_list = [inlier_data]
         except Exception:
-            self.inliers = None
+            self.inliers_list = []
+        if self.inliers_list:
+            self.inliers = self.inliers_list[0]
 
         try:
             img_list = sorted([
@@ -286,28 +311,34 @@ class PanoramaEvaluator:
         if len(self.img_paths) < 2:
             raise ValueError("\u8f93\u5165\u56fe\u7247\u6570\u91cf\u4e0d\u8db3\uff0c\u81f3\u5c11\u9700\u89812\u5f20")
 
-        # TODO: 多图拼接扩展接口 - 当前仅取前两张计算
-        # 未来扩展为3张及以上时，遍历所有相邻对(i,i+1)计算指标后取均值
-        # self.all_imgs = [_safe_imread(p) for p in self.img_paths]
-        self.img1 = _safe_imread(self.img_paths[0])
-        self.img2 = _safe_imread(self.img_paths[1])
+        # 加载所有源图片（支持 N>=2 张），向后兼容保留 img1/img2
+        self.images = []
+        for p in self.img_paths:
+            img = _safe_imread(p)
+            if img is None:
+                raise IOError("读取图片失败：" + p)
+            self.images.append(img)
+        self.img1 = self.images[0]
+        self.img2 = self.images[1]
         pano_path = os.path.join(self.result_path, CONFIG["result_img"])
         if not os.path.exists(pano_path):
             pano_path = os.path.join(self.result_path, CONFIG["result_img_fallback"])
         self.panorama = _safe_imread(pano_path)
 
-        if self.img1 is None:
-            raise IOError("\u8bfb\u53d6\u8f93\u5165\u56fe\u72471\u5931\u8d25\uff1a" + self.img_paths[0])
-        if self.img2 is None:
-            raise IOError("\u8bfb\u53d6\u8f93\u5165\u56fe\u72472\u5931\u8d25\uff1a" + self.img_paths[1])
         if self.panorama is None:
-            raise IOError("\u8bfb\u53d6\u5168\u666f\u7ed3\u679c\u56fe\u5931\u8d25")
+            raise IOError("读取全景结果图失败")
 
     def calc_match_metrics(self):
-        total = self.info.get("total_matches", 0)
-        inlier = self.info.get("inlier_num", 0)
-        if total == 0 and self.inliers is not None:
-            inlier = len(self.inliers)
+        # \u591a\u56fe\u62fc\u63a5\uff1a\u805a\u5408\u6240\u6709\u76f8\u90bb\u5bf9\u7684\u5339\u914d\u7edf\u8ba1
+        pairs = self.info.get("pairs", [])
+        if pairs:
+            total = sum(p.get("total_matches", 0) for p in pairs)
+            inlier = sum(p.get("inlier_num", 0) for p in pairs)
+        else:
+            total = self.info.get("total_matches", 0)
+            inlier = self.info.get("inlier_num", 0)
+            if total == 0 and self.inliers is not None:
+                inlier = len(self.inliers)
 
         if total < 0 or inlier < 0:
             total = max(0, total)
@@ -321,109 +352,136 @@ class PanoramaEvaluator:
             "\u5185\u70b9\u7387": round(float(ratio), 4) if total > 0 else "-"
         }
 
+    def _calc_reprojection_for_pair(self, H, inliers):
+        """计算单对图片的重投影误差"""
+        pts1 = inliers[:, :2].astype(np.float64)
+        pts2 = inliers[:, 2:].astype(np.float64)
+        if len(pts1) == 0:
+            return {"rmse": 0.0, "median": 0.0, "p95": 0.0}
+
+        pts1_homo = np.hstack([pts1, np.ones((len(pts1), 1), dtype=np.float64)])
+        pts1_proj_homo = (H @ pts1_homo.T).T
+        w = pts1_proj_homo[:, 2:3]
+        w[np.abs(w) < 1e-10] = 1e-10
+        pts1_proj = pts1_proj_homo[:, :2] / w
+
+        distances = np.linalg.norm(pts1_proj - pts2, axis=1)
+        valid_distances = distances[distances < 100]
+        if len(valid_distances) == 0:
+            valid_distances = distances
+
+        return {
+            "rmse": float(np.sqrt(np.mean(valid_distances ** 2))),
+            "median": float(np.median(valid_distances)),
+            "p95": float(np.percentile(valid_distances, 95)),
+        }
+
     def calc_reprojection_error(self):
         try:
-            if self.H is None or self.inliers is None:
+            if not self.H_list or not self.inliers_list:
                 return {
-                    "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)": "-",
-                    "\u91cd\u6295\u5f71\u4e2d\u4f4d\u6570(\u50cf\u7d20)": "-",
-                    "\u91cd\u6295\u5f71P95(\u50cf\u7d20)": "-",
-                    "_warning": "\u7f3a\u5c11H\u77e9\u9635\u6216\u5185\u70b9\u6570\u636e\uff0c\u8df3\u8fc7\u91cd\u6295\u5f71\u8bef\u5dee\u8ba1\u7b97"
-                }
-            pts1 = self.inliers[:, :2].astype(np.float64)
-            pts2 = self.inliers[:, 2:].astype(np.float64)
-
-            if len(pts1) == 0:
-                return {
-                    "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)": 0.0,
-                    "\u91cd\u6295\u5f71\u4e2d\u4f4d\u6570(\u50cf\u7d20)": 0.0,
-                    "\u91cd\u6295\u5f71P95(\u50cf\u7d20)": 0.0
+                    "重投影RMSE(像素)": "-",
+                    "重投影中位数(像素)": "-",
+                    "重投影P95(像素)": "-",
+                    "_warning": "缺少H矩阵或内点数据，跳过重投影误差计算"
                 }
 
-            # H 映射 src(pts1) → dst(pts2)，将 src 投影到 dst 空间比较
-            pts1_homo = np.hstack([pts1, np.ones((len(pts1), 1), dtype=np.float64)])
-            pts1_proj_homo = (self.H @ pts1_homo.T).T
+            rmse_vals, med_vals, p95_vals = [], [], []
+            for H, inliers in zip(self.H_list, self.inliers_list):
+                if H is None or inliers is None:
+                    continue
+                pair_result = self._calc_reprojection_for_pair(H, inliers)
+                rmse_vals.append(pair_result["rmse"])
+                med_vals.append(pair_result["median"])
+                p95_vals.append(pair_result["p95"])
 
-            w = pts1_proj_homo[:, 2:3]
-            w[np.abs(w) < 1e-10] = 1e-10
-            pts1_proj = pts1_proj_homo[:, :2] / w
-
-            distances = np.linalg.norm(pts1_proj - pts2, axis=1)
-            valid_distances = distances[distances < 100]
-            if len(valid_distances) == 0:
-                valid_distances = distances
+            if not rmse_vals:
+                return {
+                    "重投影RMSE(像素)": 0.0,
+                    "重投影中位数(像素)": 0.0,
+                    "重投影P95(像素)": 0.0
+                }
 
             return {
-                "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)": round(float(np.sqrt(np.mean(valid_distances ** 2))), 4),
-                "\u91cd\u6295\u5f71\u4e2d\u4f4d\u6570(\u50cf\u7d20)": round(float(np.median(valid_distances)), 4),
-                "\u91cd\u6295\u5f71P95(\u50cf\u7d20)": round(float(np.percentile(valid_distances, 95)), 4)
+                "重投影RMSE(像素)": round(float(np.mean(rmse_vals)), 4),
+                "重投影中位数(像素)": round(float(np.mean(med_vals)), 4),
+                "重投影P95(像素)": round(float(np.mean(p95_vals)), 4)
             }
         except Exception as e:
-            raise RuntimeError("\u8ba1\u7b97\u91cd\u6295\u5f71\u8bef\u5dee\u5931\u8d25\uff1a" + str(e))
+            raise RuntimeError("计算重投影误差失败：" + str(e))
 
-    def calc_overlap_metrics(self):
+    def calc_panorama_ssim(self):
+        """直接在最终全景图上评估拼接质量：网格采样跨切片 SSIM（不依赖 H 矩阵）"""
         try:
-            if self.H is None:
+            gray = cv2.cvtColor(self.panorama, cv2.COLOR_BGR2GRAY)
+            h, w = gray.shape
+
+            # 有效区域 mask（排除黑边）
+            valid = gray > 10
+            valid_rows, valid_cols = np.where(valid)
+            if len(valid_rows) < 500:
                 return {
-                    "\u91cd\u53e0\u533a\u7070\u5ea6MAE": "-",
-                    "\u91cd\u53e0\u533a\u7070\u5ea6RMSE": "-",
-                    "\u91cd\u53e0\u533aSSIM": "-",
-                    "\u91cd\u53e0\u533a\u68af\u5ea6MAE": "-",
-                    "_warning": "\u7f3a\u5c11H\u77e9\u9635\uff0c\u8df3\u8fc7\u91cd\u53e0\u533a\u4e00\u81f4\u6027\u8ba1\u7b97"
-                }
-            h, w = self.img1.shape[:2]
-            img2_warped = cv2.warpPerspective(
-                self.img2, self.H, (w, h),
-                flags=cv2.INTER_LINEAR,
-                borderMode=cv2.BORDER_CONSTANT,
-                borderValue=0
-            )
-
-            gray1 = cv2.cvtColor(self.img1, cv2.COLOR_BGR2GRAY)
-            gray2_warped = cv2.cvtColor(img2_warped, cv2.COLOR_BGR2GRAY)
-
-            mask1 = (gray1 > 0).astype(np.uint8)
-            mask2 = (gray2_warped > 0).astype(np.uint8)
-            overlap_mask = cv2.bitwise_and(mask1, mask2)
-
-            overlap_count = cv2.countNonZero(overlap_mask)
-
-            if overlap_count == 0:
-                return {
-                    "\u91cd\u53e0\u533a\u7070\u5ea6MAE": 0.0,
-                    "\u91cd\u53e0\u533a\u7070\u5ea6RMSE": 0.0,
-                    "\u91cd\u53e0\u533aSSIM": 0.0,
-                    "\u91cd\u53e0\u533a\u68af\u5ea6MAE": 0.0,
-                    "_warning": "\u91cd\u53e0\u533a\u57df\u4e3a\u7a7a"
+                    "全景SSIM": "-",
+                    "全景SSIM_min": "-",
+                    "全景SSIM_std": "-",
+                    "_warning": "全景图有效像素太少，跳过全景SSIM计算"
                 }
 
-            overlap_px1 = gray1[overlap_mask == 1].astype(np.float64)
-            overlap_px2 = gray2_warped[overlap_mask == 1].astype(np.float64)
+            r_min, r_max = valid_rows.min(), valid_rows.max()
+            c_min, c_max = valid_cols.min(), valid_cols.max()
 
-            mae = np.mean(np.abs(overlap_px1 - overlap_px2))
-            rmse = np.sqrt(np.mean((overlap_px1 - overlap_px2) ** 2))
+            # 网格采样：在有效区域内等距采样
+            HALF = 24
+            GRID = 6  # 6x6 网格，每个方向最多 36 个采样点
 
-            try:
-                ssim_score = structural_similarity(
-                    gray1, gray2_warped,
-                    mask=overlap_mask,
-                    data_range=255
-                )
-            except Exception:
-                ssim_score = 0.0
+            stride_y = max((r_max - r_min) // GRID, HALF * 2)
+            stride_x = max((c_max - c_min) // GRID, HALF * 2)
 
-            grad1 = self._sobel_gradient(gray1)
-            grad2 = self._sobel_gradient(gray2_warped)
-            grad_mae = np.mean(np.abs(grad1[overlap_mask == 1] - grad2[overlap_mask == 1]))
+            ssim_scores = []
+            np.random.seed(42)
+
+            for cy in range(r_min + HALF, r_max - HALF, stride_y):
+                for cx in range(c_min + HALF, c_max - HALF, stride_x):
+                    # 在网格点附近随机微调，避免对齐偏差
+                    cy_jitter = cy + np.random.randint(-HALF//2, HALF//2)
+                    cx_jitter = cx + np.random.randint(-HALF//2, HALF//2)
+                    cy_jitter = max(r_min + HALF, min(r_max - HALF, cy_jitter))
+                    cx_jitter = max(c_min + HALF, min(c_max - HALF, cx_jitter))
+
+                    if not valid[cy_jitter, cx_jitter]:
+                        continue
+
+                    # 垂直切片：左 vs 右
+                    left = gray[cy_jitter-HALF:cy_jitter+HALF, cx_jitter-HALF:cx_jitter]
+                    right = gray[cy_jitter-HALF:cy_jitter+HALF, cx_jitter:cx_jitter+HALF]
+                    if left.shape == right.shape and left.size >= 400:
+                        try:
+                            s = structural_similarity(left, right, data_range=255)
+                            ssim_scores.append(float(max(0, s)))
+                        except Exception:
+                            pass
+
+                    # 水平切片：上 vs 下
+                    top = gray[cy_jitter-HALF:cy_jitter, cx_jitter-HALF:cx_jitter+HALF]
+                    bottom = gray[cy_jitter:cy_jitter+HALF, cx_jitter-HALF:cx_jitter+HALF]
+                    if top.shape == bottom.shape and top.size >= 400:
+                        try:
+                            s = structural_similarity(top, bottom, data_range=255)
+                            ssim_scores.append(float(max(0, s)))
+                        except Exception:
+                            pass
+
+            if not ssim_scores:
+                return {"全景SSIM": 0.0, "全景SSIM_min": 0.0, "全景SSIM_std": 0.0,
+                        "_warning": "无法采样到有效切片"}
 
             return {
-                "\u91cd\u53e0\u533a\u7070\u5ea6MAE": round(float(mae), 4),
-                "\u91cd\u53e0\u533a\u7070\u5ea6RMSE": round(float(rmse), 4),
-                "\u91cd\u53e0\u533aSSIM": round(float(max(0, ssim_score)), 4),
-                "\u91cd\u53e0\u533a\u68af\u5ea6MAE": round(float(grad_mae), 4)
+                "全景SSIM": round(float(np.mean(ssim_scores)), 4),
+                "全景SSIM_min": round(float(np.min(ssim_scores)), 4),
+                "全景SSIM_std": round(float(np.std(ssim_scores)), 4),
             }
         except Exception as e:
-            raise RuntimeError("\u8ba1\u7b97\u91cd\u53e0\u533a\u6307\u6807\u5931\u8d25\uff1a" + str(e))
+            raise RuntimeError("全景SSIM计算失败：" + str(e))
 
     @staticmethod
     def _sobel_gradient(gray):
@@ -506,10 +564,10 @@ class PanoramaEvaluator:
             warnings.append("\u51e0\u4f55\u914d\u51c6\u6307\u6807\u8ba1\u7b97\u5931\u8d25\uff1a" + str(e))
 
         try:
-            overlap_metrics = self.calc_overlap_metrics()
-            if "_warning" in overlap_metrics:
-                warnings.append(overlap_metrics.pop("_warning"))
-            result.update(overlap_metrics)
+            pano_ssim = self.calc_panorama_ssim()
+            if "_warning" in pano_ssim:
+                warnings.append(pano_ssim.pop("_warning"))
+            result.update(pano_ssim)
         except Exception as e:
             warnings.append("\u91cd\u53e0\u533a\u6307\u6807\u8ba1\u7b97\u5931\u8d25\uff1a" + str(e))
 
@@ -534,16 +592,30 @@ class PanoramaEvaluator:
         scores = {}
         inlier_ratio = _safe_float(metrics.get("\u5185\u70b9\u7387", 0.0), 0.0)
         scores["\u5339\u914d\u8d28\u91cf"] = inlier_ratio
-        rmse = _safe_float(metrics.get("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", 10.0), 10.0)
-        scores["\u5bf9\u9f50\u7cbe\u5ea6"] = max(0.0, 1.0 - rmse / 10.0)
-        ssim_val = _safe_float(metrics.get("\u91cd\u53e0\u533aSSIM", 0.0), 0.0)
+
+        # RMSE 归一化：以图像对角线 0.5% 为满分阈值
+        img_diag = max(
+            np.sqrt(self.images[0].shape[0]**2 + self.images[0].shape[1]**2),
+            1.0
+        )
+        rmse = _safe_float(metrics.get("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", img_diag * 0.005), img_diag * 0.005)
+        scores["\u5bf9\u9f50\u7cbe\u5ea6"] = max(0.0, 1.0 - rmse / max(img_diag * 0.005, 1.0))
+
+        ssim_val = _safe_float(metrics.get("\u5168\u666fSSIM", 0.0), 0.0)
         scores["\u91cd\u53e0\u4e00\u81f4\u6027"] = ssim_val
         canvas_ratio = _safe_float(metrics.get("\u6709\u6548\u753b\u5e03\u5360\u6bd4", 0.0), 0.0)
         scores["\u753b\u5e03\u5229\u7528\u7387"] = canvas_ratio
+
+        # 清晰度保持率：100% 即为满分（拼接后不应比原图更清晰）
         retention = _safe_float(metrics.get("\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", 0.0), 0.0)
-        scores["\u6e05\u6670\u5ea6"] = min(1.0, retention / 1.5)
-        t = _safe_float(metrics.get("\u603b\u8017\u65f6(\u79d2)", 30.0), 30.0)
-        scores["\u8fd0\u884c\u6548\u7387"] = max(0.0, 1.0 - t / 30.0)
+        scores["\u6e05\u6670\u5ea6"] = min(1.0, max(0.0, retention))
+
+        # 运行效率：每张图 10s 为满分基准
+        image_count = len(self.images)
+        time_budget = max(image_count * 10.0, 1.0)
+        t = _safe_float(metrics.get("\u603b\u8017\u65f6(\u79d2)", time_budget), time_budget)
+        scores["\u8fd0\u884c\u6548\u7387"] = max(0.0, 1.0 - t / time_budget)
+
         valid_scores = [v for v in scores.values() if v is not None]
         scores["\u7efc\u5408\u5f97\u5206"] = round(float(np.mean(valid_scores)), 4) if valid_scores else 0.0
         return {k: round(float(v), 4) for k, v in scores.items()}
@@ -773,20 +845,20 @@ class QuickEvaluator:
                         ssim_score = 0.0
                     result["\u91cd\u53e0\u533a\u7070\u5ea6MAE"] = round(float(mae), 4)
                     result["\u91cd\u53e0\u533a\u7070\u5ea6RMSE"] = round(float(rmse_val), 4)
-                    result["\u91cd\u53e0\u533aSSIM"] = round(float(max(0, ssim_score)), 4)
+                    result["\u5168\u666fSSIM"] = round(float(max(0, ssim_score)), 4)
                 else:
                     result["\u91cd\u53e0\u533a\u7070\u5ea6MAE"] = "-"
                     result["\u91cd\u53e0\u533a\u7070\u5ea6RMSE"] = "-"
-                    result["\u91cd\u53e0\u533aSSIM"] = "-"
+                    result["\u5168\u666fSSIM"] = "-"
                     warnings.append("\u672a\u68c0\u6d4b\u5230\u91cd\u53e0\u533a\u57df")
             else:
                 result["\u91cd\u53e0\u533a\u7070\u5ea6MAE"] = "-"
                 result["\u91cd\u53e0\u533a\u7070\u5ea6RMSE"] = "-"
-                result["\u91cd\u53e0\u533aSSIM"] = "-"
+                result["\u5168\u666fSSIM"] = "-"
         except Exception as e:
             result["\u91cd\u53e0\u533a\u7070\u5ea6MAE"] = "-"
             result["\u91cd\u53e0\u533a\u7070\u5ea6RMSE"] = "-"
-            result["\u91cd\u53e0\u533aSSIM"] = "-"
+            result["\u5168\u666fSSIM"] = "-"
             warnings.append("\u91cd\u53e0\u533a\u8ba1\u7b97\u5931\u8d25\uff1a" + str(e))
 
         try:
@@ -1107,14 +1179,27 @@ class WebApiEvaluator:
     def _calc_composite_scores(self, metrics: Dict) -> Dict:
         scores = {}
         scores["匹配质量"] = metrics.get("平均内点率", 0.0) or 0.0
-        rmse = metrics.get("平均重投影RMSE(像素)", 10.0) or 10.0
-        scores["对齐精度"] = max(0.0, 1.0 - rmse / 10.0)
+
+        # RMSE 归一化：以图像对角线 0.5% 为满分阈值
+        img_diag = max(
+            np.sqrt(self.source_images[0].shape[0]**2 + self.source_images[0].shape[1]**2),
+            1.0
+        )
+        rmse = metrics.get("平均重投影RMSE(像素)", img_diag * 0.005) or img_diag * 0.005
+        scores["对齐精度"] = max(0.0, 1.0 - rmse / max(img_diag * 0.005, 1.0))
+
         scores["重叠一致性"] = metrics.get("平均重叠区SSIM", 0.0) or 0.0
         scores["画布利用率"] = metrics.get("有效画布占比", 0.0)
+
+        # 清晰度保持率：100% 即为满分
         retention = metrics.get("清晰度保持率", 0.0) or 0.0
-        scores["清晰度"] = min(1.0, retention / 1.5)
-        t = metrics.get("总耗时(秒)", 30.0) or 30.0
-        scores["运行效率"] = max(0.0, 1.0 - t / 30.0)
+        scores["清晰度"] = min(1.0, max(0.0, retention))
+
+        # 运行效率：每张图 10s 为满分基准
+        time_budget = max(self.num_images * 10.0, 1.0)
+        t = metrics.get("总耗时(秒)", time_budget) or time_budget
+        scores["运行效率"] = max(0.0, 1.0 - t / time_budget)
+
         valid_scores = [v for v in scores.values() if v is not None]
         scores["综合得分"] = round(float(np.mean(valid_scores)), 4) if valid_scores else 0.0
         return {k: round(float(v), 4) for k, v in scores.items()}
@@ -1403,7 +1488,7 @@ def generate_charts(csv_path, output_dir=None, use_english=False):
     cases = [r.get("\u7528\u4f8b\u540d\u79f0", "\u5f53\u524d\u4efb\u52a1") for r in success_results]
     inlier_ratios = [_safe_float(r.get("\u5185\u70b9\u7387"), 0.0) for r in success_results]
     rmse_list = [_safe_float(r.get("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)"), 0.0) for r in success_results]
-    ssim_list = [_safe_float(r.get("\u91cd\u53e0\u533aSSIM"), 0.0) for r in success_results]
+    ssim_list = [_safe_float(r.get("\u5168\u666fSSIM"), 0.0) for r in success_results]
     times = [_safe_float(r.get("\u603b\u8017\u65f6(\u79d2)"), 0.0) for r in success_results]
     canvas_ratios = [_safe_float(r.get("\u6709\u6548\u753b\u5e03\u5360\u6bd4"), 0.0) for r in success_results]
 
@@ -1439,7 +1524,7 @@ def generate_charts(csv_path, output_dir=None, use_english=False):
 
     plt.figure(figsize=figsize)
     bars = plt.bar(cases, ssim_list, color=colors["ssim"])
-    plt.title("\u4e0d\u540c\u573a\u666f\u91cd\u53e0\u533aSSIM\u5bf9\u6bd4\uff08\u8d8a\u5927\u8d8a\u597d\uff09", fontsize=14, fontweight='bold')
+    plt.title("\u4e0d\u540c\u573a\u666f\u5168\u666fSSIM\u5bf9\u6bd4\uff08\u8d8a\u5927\u8d8a\u597d\uff09", fontsize=14, fontweight='bold')
     plt.ylabel("SSIM")
     plt.ylim(0, 1.1)
     plt.grid(axis="y", alpha=0.3, linestyle='--')
@@ -1502,7 +1587,7 @@ def _generate_radar_chart(results, output_dir, use_english=False):
         score_keys = {
             "\u5339\u914d\u8d28\u91cf": "\u5185\u70b9\u7387",
             "\u5bf9\u9f50\u7cbe\u5ea6": "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)",
-            "\u91cd\u53e0\u4e00\u81f4\u6027": "\u91cd\u53e0\u533aSSIM",
+            "\u91cd\u53e0\u4e00\u81f4\u6027": "\u5168\u666fSSIM",
             "\u753b\u5e03\u5229\u7528\u7387": "\u6709\u6548\u753b\u5e03\u5360\u6bd4",
             "\u6e05\u6670\u5ea6": "\u6e05\u6670\u5ea6\u4fdd\u6301\u7387",
             "\u8fd0\u884c\u6548\u7387": "\u603b\u8017\u65f6(\u79d2)"
@@ -1565,7 +1650,7 @@ def generate_comparison(csv_path_a, csv_path_b, output_dir=None, label_a="A\u7ec
     compare_metrics = [
         ("\u5185\u70b9\u7387", True, "\u5339\u914d\u8d28\u91cf"),
         ("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", False, "\u51e0\u4f55\u7cbe\u5ea6"),
-        ("\u91cd\u53e0\u533aSSIM", True, "\u91cd\u53e0\u4e00\u81f4\u6027"),
+        ("\u5168\u666fSSIM", True, "\u91cd\u53e0\u4e00\u81f4\u6027"),
         ("\u6709\u6548\u753b\u5e03\u5360\u6bd4", True, "\u753b\u5e03\u5229\u7528\u7387"),
         ("\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", True, "\u6e05\u6670\u5ea6"),
         ("\u603b\u8017\u65f6(\u79d2)", False, "\u8fd0\u884c\u901f\u5ea6")
@@ -1628,7 +1713,7 @@ def generate_comparison(csv_path_a, csv_path_b, output_dir=None, label_a="A\u7ec
 def _generate_comparison_charts(comparison_table, label_a, label_b, output_dir):
     _setup_matplotlib()
 
-    chart_metrics = ["\u5185\u70b9\u7387", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u91cd\u53e0\u533aSSIM", "\u603b\u8017\u65f6(\u79d2)"]
+    chart_metrics = ["\u5185\u70b9\u7387", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u5168\u666fSSIM", "\u603b\u8017\u65f6(\u79d2)"]
     metric_labels = ["\u5185\u70b9\u7387", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "SSIM", "\u8017\u65f6(\u79d2)"]
 
     n = len(chart_metrics)
@@ -1683,7 +1768,7 @@ def _generate_comparison_charts(comparison_table, label_a, label_b, output_dir):
 
     scores_a = []
     scores_b = []
-    metric_order = ["\u5185\u70b9\u7387", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u91cd\u53e0\u533aSSIM", "\u6709\u6548\u753b\u5e03\u5360\u6bd4", "\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", "\u603b\u8017\u65f6(\u79d2)"]
+    metric_order = ["\u5185\u70b9\u7387", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u5168\u666fSSIM", "\u6709\u6548\u753b\u5e03\u5360\u6bd4", "\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", "\u603b\u8017\u65f6(\u79d2)"]
     for metric in metric_order:
         row = next(r for r in comparison_table if r["\u6307\u6807"] == metric)
         sa, sb = get_norm_score(row)
@@ -1757,7 +1842,7 @@ def generate_markdown_report(csv_path, output_path=None, report_title="\u5168\u6
     core_metrics = [
         ("\u5185\u70b9\u7387", "\u5185\u70b9\u7387", True),
         ("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", False),
-        ("\u91cd\u53e0\u533aSSIM", "\u91cd\u53e0\u533aSSIM", True),
+        ("\u5168\u666fSSIM", "\u5168\u666fSSIM", True),
         ("\u6709\u6548\u753b\u5e03\u5360\u6bd4", "\u6709\u6548\u753b\u5e03\u5360\u6bd4", True),
         ("\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", "\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", True),
         ("\u603b\u8017\u65f6(\u79d2)", "\u603b\u8017\u65f6(\u79d2)", False),
@@ -1813,7 +1898,7 @@ def generate_markdown_report(csv_path, output_path=None, report_title="\u5168\u6
         name = r.get("\u7528\u4f8b\u540d\u79f0", "-")
         inlier = r.get("\u5185\u70b9\u7387", "-")
         rmse = r.get("\u91cd\u6295\u5f71RMSE(\u50cf\u7d20)", "-")
-        ssim = r.get("\u91cd\u53e0\u533aSSIM", "-")
+        ssim = r.get("\u5168\u666fSSIM", "-")
         canvas = r.get("\u6709\u6548\u753b\u5e03\u5360\u6bd4", "-")
         sharp = r.get("\u6e05\u6670\u5ea6\u4fdd\u6301\u7387", "-")
         t = r.get("\u603b\u8017\u65f6(\u79d2)", "-")
@@ -1856,8 +1941,8 @@ def generate_markdown_report(csv_path, output_path=None, report_title="\u5168\u6
         else:
             conclusions.append("\u274c **\u51e0\u4f55\u914d\u51c6\u7cbe\u5ea6\u5dee**\uff1a\u5e73\u5747\u91cd\u6295\u5f71\u8bef\u5dee\u8fbe {:.2f} \u50cf\u7d20\uff0c\u5b58\u5728\u660e\u663e\u9519\u4f4d\u3002".format(mean_rmse))
 
-    if "\u91cd\u53e0\u533aSSIM" in metric_stats:
-        mean_ssim = metric_stats["\u91cd\u53e0\u533aSSIM"]["mean"]
+    if "\u5168\u666fSSIM" in metric_stats:
+        mean_ssim = metric_stats["\u5168\u666fSSIM"]["mean"]
         if mean_ssim >= 0.8:
             conclusions.append("\u2705 **\u91cd\u53e0\u533a\u4e00\u81f4\u6027\u597d**\uff1a\u5e73\u5747SSIM\u4e3a {:.3f}\uff0c\u62fc\u63a5\u8fc7\u6e21\u81ea\u7136\u3002".format(mean_ssim))
         elif mean_ssim >= 0.5:

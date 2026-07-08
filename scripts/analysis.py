@@ -45,7 +45,7 @@ CHART_COLORS = {
 _GAUGE_DEFS = [
     ("内点率",     "内点率",     1.0,  True,  True,  "inlier_ratio"),
     ("重投影RMSE", "重投影RMSE(像素)", 10.0, False, False, "rmse"),
-    ("重叠区SSIM", "重叠区SSIM",  1.0,  True,  True,  "ssim"),
+    ("全景SSIM",   "全景SSIM",    1.0,  True,  True,  "ssim"),
     ("总耗时",     "总耗时(秒)",  30.0, False, False, "time"),
     ("画布利用率", "有效画布占比", 1.0,  True,  True,  "canvas"),
     ("综合得分",   "综合得分",    1.0,  True,  True,  "overall"),
@@ -70,35 +70,12 @@ def _setup_matplotlib():
 # ==================== 步骤 A: 入参桥接 ====================
 
 def bridge_input(task_dir):
-    """将 stitch.py 新格式转为 test5 旧格式（只在目标文件不存在时创建）"""
+    """将 stitch.py 新格式转为 test5 兼容格式（保留多对数据，仅转换时间单位）"""
     result_dir = os.path.join(task_dir, "result")
 
-    # --- H_list.npy → H.npy (取第一对) ---
-    h_list_path = os.path.join(result_dir, "H_list.npy")
-    h_path = os.path.join(result_dir, "H.npy")
-    if os.path.exists(h_list_path) and not os.path.exists(h_path):
-        try:
-            h_data = np.load(h_list_path)
-            if h_data.ndim == 3 and h_data.shape[1:] == (3, 3):
-                np.save(h_path, h_data[0].astype(np.float64))
-            elif h_data.shape == (3, 3):
-                np.save(h_path, h_data.astype(np.float64))
-        except Exception:
-            pass
+    # H_list.npy / inliers_list.pkl 保留不动 —— PanoramaEvaluator 已支持直接读取多对格式
 
-    # --- inliers_list.pkl → inliers.npy (取第一对) ---
-    inl_pkl = os.path.join(result_dir, "inliers_list.pkl")
-    inl_path = os.path.join(result_dir, "inliers.npy")
-    if os.path.exists(inl_pkl) and not os.path.exists(inl_path):
-        try:
-            with open(inl_pkl, "rb") as f:
-                inliers_list = pickle.load(f)
-            if inliers_list and len(inliers_list) > 0:
-                np.save(inl_path, inliers_list[0].astype(np.float64))
-        except Exception:
-            pass
-
-    # --- result_info.json (pairs) → test5 顶层字段格式 ---
+    # --- result_info.json: 仅转换 total_time ms→s，保留 pairs 数组 ---
     info_path = os.path.join(result_dir, "result_info.json")
     if os.path.exists(info_path):
         try:
@@ -107,11 +84,11 @@ def bridge_input(task_dir):
         except Exception:
             return
 
-        # 如果已经是顶层格式 (没有 pairs)，跳过
+        # 如果已经是转换后的格式 (没有 pairs 但有 total_time 已是秒级)，跳过
         if "pairs" not in info:
             return
 
-        # 备份新格式 → result_info_full.json
+        # 备份原始新格式
         backup_path = os.path.join(result_dir, "result_info_full.json")
         if not os.path.exists(backup_path):
             try:
@@ -119,19 +96,12 @@ def bridge_input(task_dir):
             except Exception:
                 pass
 
-        pairs = info.get("pairs", [])
-        total_matches = sum(p.get("total_matches", 0) for p in pairs)
-        inlier_num = sum(p.get("inlier_num", 0) for p in pairs)
-        # stitch.py 产出毫秒，test5 期望秒
-        total_time = round(float(info.get("total_time", 0)) / 1000.0, 4)
+        # stitch.py 产出毫秒 → 转为秒，保留 pairs 供多对评估使用
+        info["total_time"] = round(float(info.get("total_time", 0)) / 1000.0, 4)
 
         try:
             with open(info_path, "w", encoding="utf-8") as f:
-                json.dump({
-                    "total_matches": total_matches,
-                    "inlier_num": inlier_num,
-                    "total_time": total_time,
-                }, f, ensure_ascii=False, indent=2)
+                json.dump(info, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
 
@@ -173,7 +143,7 @@ def build_eval_result(data, case_name):
     if isinstance(rmse, (int, float)):
         rmse = round(float(rmse), 4)
 
-    ssim_val = _extract_field(data, "重叠区SSIM")
+    ssim_val = _extract_field(data, "全景SSIM")
     if isinstance(ssim_val, (int, float)):
         ssim_val = round(float(ssim_val), 4)
 
@@ -198,7 +168,7 @@ def build_eval_result(data, case_name):
         "状态": data.get("状态", "成功"),
         "内点率": inlier_ratio,
         "重投影RMSE": rmse,
-        "重叠区SSIM": ssim_val,
+        "全景SSIM": ssim_val,
         "有效画布占比": canvas,
         "清晰度保持率": sharpness,
         "综合得分": overall if overall is not None else 0,
@@ -232,11 +202,10 @@ def build_full_metrics(data, case_name, image_count):
             "重投影中位数(像素)": _f(data.get("重投影中位数(像素)")),
             "重投影P95(像素)": _f(data.get("重投影P95(像素)")),
         },
-        "重叠区一致性": {
-            "重叠区灰度MAE": _f(data.get("重叠区灰度MAE")),
-            "重叠区灰度RMSE": _f(data.get("重叠区灰度RMSE")),
-            "重叠区SSIM": _f(data.get("重叠区SSIM")),
-            "重叠区梯度MAE": _f(data.get("重叠区梯度MAE")),
+        "拼接一致性": {
+            "全景SSIM": _f(data.get("全景SSIM")),
+            "全景SSIM_min": _f(data.get("全景SSIM_min")),
+            "全景SSIM_std": _f(data.get("全景SSIM_std")),
         },
         "画布利用率": {
             "有效画布占比": _f(data.get("有效画布占比")),
@@ -322,7 +291,7 @@ def generate_charts(data, output_dir):
     gauge_data = {
         "内点率":    _safe_float(data.get("内点率"), None),
         "重投影RMSE": _safe_float(data.get("重投影RMSE(像素)"), None),
-        "重叠区SSIM": _safe_float(data.get("重叠区SSIM"), None),
+        "全景SSIM":   _safe_float(data.get("全景SSIM"), None),
         "总耗时":     _safe_float(data.get("总耗时(秒)"), None),
         "画布利用率": _safe_float(data.get("有效画布占比"), None),
         "综合得分":   _safe_float(_extract_field(data, "分数_综合得分"), 0.0),
@@ -398,7 +367,7 @@ def _generate_table_image(data, score_map, output_dir):
         ("总匹配对数",    "总匹配对数",    False, "相邻图对 knnMatch 匹配总数"),
         ("RANSAC内点数",  "RANSAC内点数",  False, "通过 Lowe's ratio + RANSAC 筛选的内点数"),
         ("重投影RMSE",    "重投影RMSE(像素)", False, "src 点经 H 投影到 dst 空间的均方根误差"),
-        ("重叠区SSIM",    "重叠区SSIM",   True,  "重叠区域结构相似度 (0-1)"),
+        ("全景SSIM",      "全景SSIM",     True,  "全景图跨切片结构相似度 (0-1)"),
         ("有效画布占比",  "有效画布占比",  True,  "全景图中非黑像素占比"),
         ("清晰度保持率",  "清晰度保持率",  True,  "全景图 Laplacian 方差 / 原图均值"),
         ("总耗时",        "总耗时(秒)",    False, "拼接总耗时（秒）"),
@@ -489,16 +458,34 @@ def main():
 
         data = _parse_evaluation_table(eval_path)
 
-        # 图片数量从 result_info.json 读取
+        # 图片数量：优先从 result_info.json 的 pairs 推算，回退到输入目录统计
         info_path = os.path.join(task_dir, "result", "result_info.json")
+        backup_path = os.path.join(task_dir, "result", "result_info_full.json")
         image_count = 0
+        # 优先从转换后的 result_info.json 读取（bridge_input 已保留 pairs）
         if os.path.exists(info_path):
             try:
                 with open(info_path, "r", encoding="utf-8") as f:
                     info = json.load(f)
+                if "pairs" in info:
+                    image_count = len(info["pairs"]) + 1
+            except Exception:
+                pass
+        # 回退1：从备份文件读取
+        if image_count == 0 and os.path.exists(backup_path):
+            try:
+                with open(backup_path, "r", encoding="utf-8") as f:
+                    info = json.load(f)
                 image_count = len(info.get("pairs", [])) + 1
             except Exception:
                 pass
+        # 回退2：扫描输入目录
+        if image_count == 0:
+            input_dir = os.path.join(task_dir, "input")
+            if os.path.isdir(input_dir):
+                exts = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff')
+                image_count = sum(1 for f in os.listdir(input_dir)
+                                  if f.lower().endswith(exts))
 
         # 写 eval_result.json
         eval_result = build_eval_result(data, case_name)

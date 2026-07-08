@@ -12,6 +12,7 @@
     <div v-else-if="task.status === 'pending' || task.status === 'processing'" class="loading-box">
       <el-icon class="spinner" :size="48"><Loading /></el-icon>
       <p>{{ task.status === 'pending' ? $t('task.pending') : $t('task.processing') }}</p>
+      <p class="elapsed-text">{{ $t('task.elapsed', { n: elapsed }) }}</p>
     </div>
 
     <!-- failed -->
@@ -223,7 +224,9 @@ const taskId = route.params.taskId
 const task = ref(null)
 const notFound = ref(false)
 const tableData = ref([])
+const elapsed = ref(0)
 let timer = null
+let elapsedTimer = null
 
 // ---- 全屏大图查看器 ----
 const viewerOpen = ref(false)
@@ -242,8 +245,17 @@ const viewerImgStyle = computed(() => ({
   transition: dragging.value ? 'none' : 'transform 0.15s ease-out',
 }))
 
-function openViewer() { viewerOpen.value = true; viewerScale.value = 1; viewerX.value = 0; viewerY.value = 0 }
-function closeViewer() { viewerOpen.value = false }
+function openViewer() {
+  viewerOpen.value = true; viewerScale.value = 1; viewerX.value = 0; viewerY.value = 0
+  window.addEventListener('keydown', onViewerKeydown)
+}
+function closeViewer() {
+  viewerOpen.value = false
+  window.removeEventListener('keydown', onViewerKeydown)
+}
+function onViewerKeydown(e) {
+  if (e.key === 'Escape') closeViewer()
+}
 function onViewerImgLoad() {
   if (viewerImg.value) {
     imgNatural.value = { w: viewerImg.value.naturalWidth, h: viewerImg.value.naturalHeight }
@@ -316,7 +328,7 @@ function formatVal(label, val) {
   if (val == null || val === '-' || val === undefined) return '-'
   const v = typeof val === 'string' ? parseFloat(val) : val
   if (isNaN(v)) return String(val)
-  const isPct = ['内点率', '重叠区SSIM', '有效画布占比', '清晰度保持率', '综合得分'].includes(label)
+  const isPct = ['内点率', '全景SSIM', '有效画布占比', '清晰度保持率', '综合得分'].includes(label)
   if (isPct) return (v * 100).toFixed(1) + '%'
   if (label === '重投影RMSE') return v.toFixed(2) + ' px'
   return typeof val === 'number' ? val.toFixed(4) : String(val)
@@ -324,7 +336,7 @@ function formatVal(label, val) {
 
 const evalRows = computed(() => {
   if (!evalData.value) return []
-  const fields = ['内点率', '重投影RMSE', '重叠区SSIM', '有效画布占比', '清晰度保持率', '综合得分']
+  const fields = ['内点率', '重投影RMSE', '全景SSIM', '有效画布占比', '清晰度保持率', '综合得分']
   return fields.map(label => {
     const val = evalData.value[label]
     return { label, value: val, display: formatVal(label, val) }
@@ -398,6 +410,15 @@ async function fetchFullMetrics() {
   } catch { /* skip */ }
 }
 
+function startElapsedTimer() {
+  if (elapsedTimer) return
+  elapsedTimer = setInterval(() => { elapsed.value++ }, 1000)
+}
+
+function stopElapsedTimer() {
+  if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null }
+}
+
 async function poll() {
   try {
     const res = await getTask(taskId)
@@ -405,6 +426,7 @@ async function poll() {
       task.value = res.data
       if (res.data.status === 'completed' || res.data.status === 'failed') {
         clearInterval(timer)
+        stopElapsedTimer()
         if (res.data.table_urls) {
           fetchTables(res.data.table_urls)
         }
@@ -416,12 +438,13 @@ async function poll() {
     } else if (res.code === 404) {
       notFound.value = true
       clearInterval(timer)
+      stopElapsedTimer()
     }
   } catch { /* retry next poll */ }
 }
 
-onMounted(() => { poll(); timer = setInterval(poll, 1000) })
-onUnmounted(() => clearInterval(timer))
+onMounted(() => { poll(); startElapsedTimer(); timer = setInterval(poll, 1000) })
+onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 </script>
 
 <style scoped>
@@ -430,6 +453,7 @@ onUnmounted(() => clearInterval(timer))
 .loading-box { text-align: center; padding: 80px 0; }
 .spinner { animation: spin 1s linear infinite; color: #409EFF; }
 .loading-box p { margin-top: 16px; font-size: 16px; color: #666; }
+.elapsed-text { font-size: 13px !important; color: #bbb !important; margin-top: 6px !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-box { padding: 60px 0; }
 .meta-bar {
