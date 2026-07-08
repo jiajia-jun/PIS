@@ -54,17 +54,22 @@ func (s *TaskService) GetTask(taskID string) (*model.Task, error) {
 	return &task, nil
 }
 
-// GetHistory 分页查询历史记录，按创建时间倒序
-func (s *TaskService) GetHistory(page, size int) ([]model.Task, int64, error) {
+// GetHistory 分页查询历史记录，按创建时间倒序。status 为空时查询全部。
+func (s *TaskService) GetHistory(page, size int, status string) ([]model.Task, int64, error) {
 	var tasks []model.Task
 	var total int64
 
-	if err := s.db.Model(&model.Task{}).Count(&total).Error; err != nil {
+	query := s.db.Model(&model.Task{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	offset := (page - 1) * size
-	if err := s.db.Order("created_at DESC").Offset(offset).Limit(size).Find(&tasks).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&tasks).Error; err != nil {
 		return nil, 0, err
 	}
 
