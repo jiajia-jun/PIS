@@ -2,6 +2,7 @@ export default {
   nav: {
     upload: '上传',
     history: '历史记录',
+    about: '关于我们',
   },
   upload: {
     title: '全景图像拼接',
@@ -50,6 +51,19 @@ export default {
     empty_all: '暂无拼接记录，上传你的第一组图片开始拼接',
     show_all: '查看全部',
     empty_filtered: '没有符合筛选条件的记录',
+  },
+  about: {
+    intro_title: '关于 PIS',
+    intro_p1: 'PIS 是一个基于 Web 的全景图像拼接系统。用户上传多张有重叠区域的图片，系统自动生成高质量的全景拼接图像。',
+    intro_algo: '核心拼接算法采用 SIFT / ORB 等经典特征检测算子进行关键点提取与描述，通过最近邻匹配与 RANSAC 鲁棒估计计算单应性矩阵，完成图像配准。配准后采用多频段融合（Multi-band Blending）与图割（Graph Cut）等算法消除拼接缝与鬼影，保证最终全景图的视觉一致性。',
+    intro_data: '系统内建全景质量评估体系，提供内点率、重投影 RMSE、全景 SSIM、有效画布占比、清晰度保持率等多维度指标，并通过雷达图、数据表格与图表等形式直观呈现每次拼接的质量分析结果。',
+    intro_p2: '本项目采用 Go + Gin 构建后端服务，Vue 3 + Element Plus 构建前端界面，支持异步任务队列、历史记录管理与拼接质量评估等功能。',
+    tech_title: '技术栈',
+    team_title: '项目成员',
+    contact_title: '联系方式',
+    contact_value: '如有问题或建议，欢迎通过项目 Issue 反馈。',
+    github_label: 'github.com/jiajia-jun/PIS',
+    github_url: 'https://github.com/jiajia-jun/PIS',
   },
   eval: {
     title: '拼接质量评估',

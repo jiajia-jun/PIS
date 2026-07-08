@@ -145,48 +145,49 @@ async function doUpload() {
 .upload-card {
   width: 100%;
   max-width: 620px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 40px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-card);
 }
 .upload-title {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 8px;
   text-align: center;
+  color: var(--text-primary);
 }
 .upload-desc {
-  color: #666;
+  color: var(--text-tertiary);
   margin-bottom: 32px;
   text-align: center;
 }
 .upload-area {
   padding: 40px 20px;
 }
-.upload-icon {
+.upload-area .upload-icon {
   font-size: 48px;
-  color: #409EFF;
+  color: var(--accent);
   margin-bottom: 12px;
 }
 .upload-text {
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
-.upload-text em {
-  color: #409EFF;
+.upload-area .upload-text em {
+  color: var(--accent);
   font-style: normal;
 }
 .upload-hint {
   font-size: 12px;
-  color: #bbb;
+  color: var(--text-light);
 }
 
 /* ---- 文件预览 ---- */
 .file-preview-section {
   margin-top: 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-light);
   padding-top: 16px;
 }
 .file-preview-header {
@@ -195,7 +196,7 @@ async function doUpload() {
   align-items: center;
   margin-bottom: 12px;
   font-size: 13px;
-  color: #909399;
+  color: var(--text-muted);
 }
 .file-preview-grid {
   display: grid;
@@ -203,19 +204,19 @@ async function doUpload() {
   gap: 10px;
 }
 .file-preview-item {
-  background: #fafbfc;
+  background: var(--bg-file-item);
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   transition: border-color 0.2s;
 }
 .file-preview-item:hover {
-  border-color: #c6d0db;
+  border-color: var(--border-hover);
 }
 .file-preview-img-wrap {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: #f0f1f3;
+  background: var(--bg-file-img);
   overflow: hidden;
 }
 .file-preview-img {
@@ -244,7 +245,7 @@ async function doUpload() {
 }
 .file-preview-name {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   padding: 4px 6px 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -252,7 +253,7 @@ async function doUpload() {
 }
 .file-preview-size {
   font-size: 10px;
-  color: #bbb;
+  color: var(--text-light);
   padding: 0 6px 6px;
 }
 
