@@ -47,15 +47,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { getHistory } from '../api'
 
 const router = useRouter()
+const route = useRoute()
 const items = ref([])
 const total = ref(0)
-const page = ref(1)
-const size = ref(10)
+const page = ref(Number(route.query.page) || 1)
+const size = ref(Number(route.query.size) || 10)
 
 function statusType(s) {
   const m = { completed: 'success', failed: 'danger', pending: 'info', processing: 'warning' }
@@ -64,7 +65,10 @@ function statusType(s) {
 function formatTime(ts) { return ts ? new Date(ts).toLocaleString() : '-' }
 function indexMethod(idx) { return (page.value - 1) * size.value + idx + 1 }
 function goDetail(row) { router.push(`/task/${row.task_id}`) }
-function onSizeChange(v) { size.value = v; page.value = 1; fetchHistory() }
+function onSizeChange(v) { size.value = v; page.value = 1; syncQuery(); fetchHistory() }
+function syncQuery() {
+  router.replace({ query: { page: page.value, size: size.value } })
+}
 async function fetchHistory() {
   try {
     const res = await getHistory(page.value, size.value)
@@ -72,6 +76,7 @@ async function fetchHistory() {
   } catch { /* ignore */ }
 }
 onMounted(fetchHistory)
+watch(page, syncQuery)
 </script>
 
 <style scoped>
