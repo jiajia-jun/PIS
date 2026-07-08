@@ -243,6 +243,9 @@ function onViewerWheel(e) {
   const img = viewerImg.value
   if (!img) return
   const rect = img.parentElement.getBoundingClientRect()
+  // 视口中心（图片默认 flexbox 居中于 mask）
+  const cx = rect.width / 2
+  const cy = rect.height / 2
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
 
@@ -250,10 +253,10 @@ function onViewerWheel(e) {
   let newScale = oldScale * (e.deltaY < 0 ? 1.15 : 0.85)
   newScale = Math.max(0.2, Math.min(5, newScale))
 
-  // 缩放中心 = 鼠标在图像上的位置 (相对于图像左上角)
+  // viewerX/Y 是从视口中心的平移量，保持鼠标指向的图片点不动
   const ratio = newScale / oldScale
-  viewerX.value = mx - ratio * (mx - viewerX.value)
-  viewerY.value = my - ratio * (my - viewerY.value)
+  viewerX.value = viewerX.value * ratio + (1 - ratio) * (mx - cx)
+  viewerY.value = viewerY.value * ratio + (1 - ratio) * (my - cy)
   viewerScale.value = newScale
 }
 
