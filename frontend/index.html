@@ -14,12 +14,26 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409EFF 0%, #1a3a6e 100%);
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a3a6e 50%, #0d1b2a 100%);
         cursor: pointer;
         transition: opacity 0.5s ease;
+        overflow: hidden;
       }
       #splash.fade-out {
         opacity: 0;
+        pointer-events: none;
+      }
+      #splash canvas {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+      #splash .text-layer {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         pointer-events: none;
       }
       #splash .pis {
@@ -28,6 +42,7 @@
         font-weight: 800;
         color: #fff;
         letter-spacing: 24px;
+        text-shadow: 0 0 40px rgba(64, 158, 255, 0.5);
         animation: pis-reveal 0.6s ease-out forwards;
       }
       #splash .subtitle {
@@ -41,14 +56,26 @@
         transform: translateY(20px);
         animation: subtitle-slide 0.4s 0.8s ease-out forwards;
       }
+      #splash .subtitle-cn {
+        font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        font-size: 16px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 8px;
+        margin-top: 10px;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: subtitle-slide 0.4s 1.2s ease-out forwards;
+      }
       #splash .skip-hint {
         position: absolute;
         bottom: 40px;
+        z-index: 1;
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.45);
+        color: rgba(255, 255, 255, 0.4);
         letter-spacing: 2px;
         opacity: 0;
-        animation: hint-show 0.3s 2s ease-out forwards;
+        animation: hint-show 0.3s 1.6s ease-out forwards;
       }
       @keyframes pis-reveal {
         0%   { opacity: 0; filter: blur(8px); transform: scale(0.95); }
@@ -62,7 +89,6 @@
         to { opacity: 1; }
       }
 
-      /* 移动端适配 */
       @media (max-width: 600px) {
         #splash .pis {
           font-size: 56px;
@@ -77,37 +103,130 @@
   </head>
   <body>
     <div id="splash">
-      <div class="pis">PIS</div>
-      <div class="subtitle">Panoramic Imaging Stitching</div>
+      <canvas id="splash-canvas"></canvas>
+      <div class="text-layer">
+        <div class="pis">PIS</div>
+        <div class="subtitle">Panoramic Imaging Stitching</div>
+        <div class="subtitle-cn">全景图像拼接</div>
+      </div>
       <div class="skip-hint">点击任意位置进入</div>
     </div>
     <div id="app"></div>
     <script>
       (function() {
-        var VISITED_KEY = 'pis_visited'
         var splash = document.getElementById('splash')
+        var canvas = document.getElementById('splash-canvas')
+        var ctx = canvas.getContext('2d')
 
-        // 不是首次访问，直接隐藏
-        if (localStorage.getItem(VISITED_KEY)) {
-          splash.style.display = 'none'
-          return
+        // ---- 粒子系统 ----
+        var PARTICLE_COUNT = 80
+        var CONNECT_DIST = 140      // 连线最大距离
+        var PARTICLE_RADIUS = 2.5   // 粒子半径
+        var MAX_SPEED = 0.6         // 最大速度
+
+        var particles = []
+        var w, h
+        var animId
+
+        function resize() {
+          w = canvas.width  = splash.clientWidth
+          h = canvas.height = splash.clientHeight
         }
 
-        // 标记已访问
-        localStorage.setItem(VISITED_KEY, '1')
+        function initParticles() {
+          particles = []
+          for (var i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * MAX_SPEED * 2,
+              vy: (Math.random() - 0.5) * MAX_SPEED * 2,
+            })
+          }
+        }
 
+        function update() {
+          for (var i = 0; i < particles.length; i++) {
+            var p = particles[i]
+            p.x += p.vx
+            p.y += p.vy
+            // 轻微随机漂移
+            p.vx += (Math.random() - 0.5) * 0.04
+            p.vy += (Math.random() - 0.5) * 0.04
+            // 限速
+            var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+            if (sp > MAX_SPEED) { p.vx = (p.vx / sp) * MAX_SPEED; p.vy = (p.vy / sp) * MAX_SPEED }
+            // 边界回弹
+            if (p.x < 0) { p.x = 0; p.vx *= -1 }
+            if (p.x > w) { p.x = w; p.vx *= -1 }
+            if (p.y < 0) { p.y = 0; p.vy *= -1 }
+            if (p.y > h) { p.y = h; p.vy *= -1 }
+          }
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h)
+
+          // 连线
+          for (var i = 0; i < particles.length; i++) {
+            for (var j = i + 1; j < particles.length; j++) {
+              var a = particles[i], b = particles[j]
+              var dx = a.x - b.x, dy = a.y - b.y
+              var dist = Math.sqrt(dx * dx + dy * dy)
+              if (dist < CONNECT_DIST) {
+                var alpha = (1 - dist / CONNECT_DIST) * 0.35
+                ctx.strokeStyle = 'rgba(100, 180, 255, ' + alpha.toFixed(2) + ')'
+                ctx.lineWidth = 0.6
+                ctx.beginPath()
+                ctx.moveTo(a.x, a.y)
+                ctx.lineTo(b.x, b.y)
+                ctx.stroke()
+              }
+            }
+          }
+
+          // 粒子
+          for (var i = 0; i < particles.length; i++) {
+            var p = particles[i]
+            // 外发光
+            var glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, PARTICLE_RADIUS * 3)
+            glow.addColorStop(0, 'rgba(150, 210, 255, 0.8)')
+            glow.addColorStop(0.4, 'rgba(64, 158, 255, 0.3)')
+            glow.addColorStop(1, 'rgba(64, 158, 255, 0)')
+            ctx.fillStyle = glow
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, PARTICLE_RADIUS * 3, 0, Math.PI * 2)
+            ctx.fill()
+
+            // 核心
+            ctx.fillStyle = '#fff'
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, PARTICLE_RADIUS, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
+
+        function loop() {
+          update()
+          draw()
+          animId = requestAnimationFrame(loop)
+        }
+
+        // ---- 启动 ----
+        resize()
+        initParticles()
+        loop()
+        window.addEventListener('resize', function() { resize(); initParticles() })
+
+        // ---- 点击进入 ----
         var removed = false
         function dismiss() {
           if (removed) return
           removed = true
+          cancelAnimationFrame(animId)
           splash.classList.add('fade-out')
           setTimeout(function() { splash.style.display = 'none' }, 500)
         }
-
-        // 自动播放完后淡出（600ms blur + 200ms pause + 400ms subtitle + 1200ms hold = 2400ms）
-        setTimeout(dismiss, 2400)
-
-        // 点击跳过
         splash.addEventListener('click', dismiss, { once: true })
       })()
     </script>

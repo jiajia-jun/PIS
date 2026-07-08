@@ -41,4 +41,12 @@ export default {
     cost: '耗时',
     created: '创建时间',
   },
+  eval: {
+    title: '拼接质量评估',
+    metric: '指标',
+    value: '数值',
+    grade: '评级',
+    no_radar: '雷达图暂无',
+    detail_title: '查看详细数据',
+  },
 }

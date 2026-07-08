@@ -93,18 +93,27 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 	meta, err = engine.ReadMetaJSON(resultDir)
 	if err != nil {
 		task.Status = model.StatusFailed
-		task.ErrorMsg = fmt.Sprintf("解析 meta.json 失败: %v", err)
+		task.ErrorMsg = fmt.Sprintf("读取处理结果失败")
 		s.db.Save(task)
 		s.writeTaskLog(task)
 		s.enforceHistoryLimit()
 		return
 	}
 
-	// 更新任务状态
-	task.Status = model.StatusCompleted
-	task.CostMs = meta.CostMs
-	task.Keypoints = meta.Keypoints
-	task.ResultPath = filepath.Join(resultDir, "result.jpg")
+	// 根据 meta.Status 判断拼接是否成功
+	if meta.Status == "error" {
+		task.Status = model.StatusFailed
+		if meta.Error != "" {
+			task.ErrorMsg = meta.Error
+		} else {
+			task.ErrorMsg = "拼接失败（未知原因）"
+		}
+	} else {
+		task.Status = model.StatusCompleted
+		task.CostMs = meta.CostMs
+		task.Keypoints = meta.Keypoints
+		task.ResultPath = filepath.Join(resultDir, "result.jpg")
+	}
 	s.db.Save(task)
 
 	s.writeTaskLog(task)
@@ -123,7 +132,7 @@ func (s *TaskService) writeTaskLog(task *model.Task) {
 			zap.Int("images", task.ImageCount),
 		)
 	case model.StatusFailed:
-		s.taskLog.Info("",
+		s.taskLog.Error("",
 			zap.String("task_id", task.ID),
 			zap.String("status", task.Status),
 			zap.String("error", task.ErrorMsg),

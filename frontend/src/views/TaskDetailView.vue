@@ -44,6 +44,85 @@
         </div>
       </div>
 
+      <!-- ===== 拼接质量评估摘要区 ===== -->
+      <div v-if="hasEvalData" class="eval-summary">
+        <h3>{{ $t('eval.title') }}</h3>
+        <div class="eval-content">
+          <!-- 左：6 指标表格 -->
+          <div class="eval-table-wrap">
+            <table class="eval-table">
+              <thead>
+                <tr>
+                  <th>{{ $t('eval.metric') }}</th>
+                  <th>{{ $t('eval.value') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in evalRows" :key="row.label">
+                  <td class="eval-label">{{ row.label }}</td>
+                  <td class="eval-value">{{ row.display }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- 右：雷达图 -->
+          <div class="eval-radar">
+            <el-image
+              v-if="radarSrc"
+              :src="radarSrc"
+              :preview-src-list="[radarSrc]"
+              :preview-teleported="true"
+              fit="contain"
+              class="radar-img"
+            >
+              <template #placeholder>
+                <div class="radar-placeholder">
+                  <el-icon class="spinner" :size="32"><Loading /></el-icon>
+                </div>
+              </template>
+            </el-image>
+            <div v-else class="radar-empty">
+              <span>{{ $t('eval.no_radar') }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 详细数据折叠面板 ===== -->
+      <div v-if="hasDetailData" class="detail-section">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item name="detail">
+            <template #title>
+              <span class="collapse-title">{{ $t('eval.detail_title') }}</span>
+            </template>
+
+            <el-tabs v-model="activeDetailTab" type="border-card" class="detail-tabs">
+              <el-tab-pane
+                v-for="group in detailGroups"
+                :key="group.name"
+                :label="group.name"
+                :name="group.name"
+              >
+                <el-descriptions :column="2" border size="small" class="detail-desc">
+                  <el-descriptions-item
+                    v-for="item in group.items"
+                    :key="item.label"
+                    :label="item.label"
+                    :span="1"
+                  >
+                    <span v-if="item.value !== null && item.value !== undefined" class="detail-val">
+                      {{ item.value }}
+                    </span>
+                    <span v-else class="detail-na">N/A</span>
+                  </el-descriptions-item>
+                </el-descriptions>
+              </el-tab-pane>
+            </el-tabs>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
+      <!-- ===== 原始图片 ===== -->
       <div v-if="task.input_urls?.length" class="input-section">
         <h3>{{ $t('task.source_images') }}</h3>
         <div class="input-grid">
@@ -53,15 +132,23 @@
         </div>
       </div>
 
-      <div v-if="task.chart_urls?.length" class="analysis-section">
+      <!-- ===== 分析图表（原有 grid，去重雷达图后展示其余） ===== -->
+      <div v-if="otherChartUrls.length" class="analysis-section">
         <h3>{{ $t('task.charts') }}</h3>
         <div class="chart-grid">
-          <div v-for="url in task.chart_urls" :key="url" class="chart-item">
-            <img :src="url" :alt="url" />
+          <div v-for="url in otherChartUrls" :key="url" class="chart-item">
+            <el-image
+              :src="url"
+              :preview-src-list="[url]"
+              :preview-teleported="true"
+              fit="contain"
+              class="chart-el-img"
+            />
           </div>
         </div>
       </div>
 
+      <!-- ===== 分析数据表格（原有） ===== -->
       <div v-if="tableData.length" class="table-section">
         <h3>{{ $t('task.tables') }}</h3>
         <div v-for="(tbl, idx) in tableData" :key="idx" class="table-card">
@@ -96,9 +183,66 @@ const notFound = ref(false)
 const tableData = ref([])
 let timer = null
 
+// ---- 评估数据 ----
+const evalData = ref(null)       // eval_result.json
+const fullMetrics = ref(null)    // full_metrics.json
+const activeCollapse = ref([])
+const activeDetailTab = ref('匹配质量')
+
 const thumbnailSrc = computed(() => `/api/thumbnail/${taskId}`)
 const resultSrc = computed(() => `/api/result/${taskId}`)
 
+const hasEvalData = computed(() => evalData.value && evalData.value['状态'] === '成功')
+const hasDetailData = computed(() => fullMetrics.value && fullMetrics.value['分组'])
+
+// 评级阈值与逻辑
+function formatVal(label, val) {
+  if (val == null || val === '-' || val === undefined) return '-'
+  const v = typeof val === 'string' ? parseFloat(val) : val
+  if (isNaN(v)) return String(val)
+  const isPct = ['内点率', '重叠区SSIM', '有效画布占比', '清晰度保持率', '综合得分'].includes(label)
+  if (isPct) return (v * 100).toFixed(1) + '%'
+  if (label === '重投影RMSE') return v.toFixed(2) + ' px'
+  return typeof val === 'number' ? val.toFixed(4) : String(val)
+}
+
+const evalRows = computed(() => {
+  if (!evalData.value) return []
+  const fields = ['内点率', '重投影RMSE', '重叠区SSIM', '有效画布占比', '清晰度保持率', '综合得分']
+  return fields.map(label => {
+    const val = evalData.value[label]
+    return { label, value: val, display: formatVal(label, val) }
+  })
+})
+
+const detailGroups = computed(() => {
+  if (!fullMetrics.value || !fullMetrics.value['分组']) return []
+  return Object.entries(fullMetrics.value['分组']).map(([name, items]) => ({
+    name,
+    items: Object.entries(items).map(([label, value]) => ({
+      label,
+      value: value !== null && value !== undefined
+        ? (typeof value === 'number' ? value.toFixed(6) : String(value))
+        : null
+    }))
+  }))
+})
+
+// 雷达图 URL
+const radarSrc = computed(() => {
+  if (!task.value?.chart_urls?.length) return null
+  return task.value.chart_urls.find(u => u.includes('quality_radar')) || null
+})
+
+// 其余图表（排除雷达图、gauge 大图，避免重复展示）
+const otherChartUrls = computed(() => {
+  if (!task.value?.chart_urls?.length) return []
+  return task.value.chart_urls.filter(u =>
+    !u.includes('quality_radar') && !u.includes('gauge_')
+  )
+})
+
+// ---- 数据加载 ----
 async function fetchTables(urls) {
   if (!urls?.length) { tableData.value = []; return }
   const results = []
@@ -114,6 +258,30 @@ async function fetchTables(urls) {
   tableData.value = results
 }
 
+async function fetchEvalData() {
+  try {
+    const res = await fetch(`/api/analysis/${taskId}/eval_result.json`)
+    if (res.ok) {
+      evalData.value = await res.json()
+    }
+  } catch { /* skip */ }
+}
+
+async function fetchFullMetrics() {
+  try {
+    const res = await fetch(`/api/analysis/${taskId}/full_metrics.json`)
+    if (res.ok) {
+      fullMetrics.value = await res.json()
+      // 自动展开折叠面板 + 默认选中第一个有数据的分组
+      if (fullMetrics.value?.分组) {
+        activeCollapse.value = ['detail']
+        const names = Object.keys(fullMetrics.value.分组)
+        if (names.length) activeDetailTab.value = names[0]
+      }
+    }
+  } catch { /* skip */ }
+}
+
 async function poll() {
   try {
     const res = await getTask(taskId)
@@ -123,6 +291,10 @@ async function poll() {
         clearInterval(timer)
         if (res.data.table_urls) {
           fetchTables(res.data.table_urls)
+        }
+        if (res.data.status === 'completed') {
+          fetchEvalData()
+          fetchFullMetrics()
         }
       }
     } else if (res.code === 404) {
@@ -156,7 +328,9 @@ onUnmounted(() => clearInterval(timer))
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
 }
 .meta-bar strong { color: #333; font-size: 18px; }
-.result-section h3, .analysis-section h3, .table-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+.result-section h3, .analysis-section h3, .table-section h3, .input-section h3 {
+  margin-bottom: 16px; font-size: 18px; font-weight: 600;
+}
 .preview-hint { font-size: 12px; color: #999; font-weight: 400; }
 .result-image-wrap {
   background: #fff;
@@ -178,6 +352,103 @@ onUnmounted(() => clearInterval(timer))
   object-fit: contain;
   filter: blur(8px);
 }
+
+/* ===== 评估摘要区 ===== */
+.eval-summary {
+  margin-top: 40px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+.eval-summary h3 {
+  margin: 0 0 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.eval-content {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+.eval-table-wrap {
+  flex: 0 0 auto;
+  min-width: 340px;
+}
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.eval-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  color: #666;
+  font-weight: 600;
+  border-bottom: 2px solid #e4e7ed;
+}
+.eval-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ebeef5;
+}
+.eval-label { color: #333; font-weight: 500; }
+.eval-value { color: #333; font-weight: 600; font-variant-numeric: tabular-nums; }
+.eval-radar {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  background: #fafbfc;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.eval-radar:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.radar-img { width: 100%; max-height: 300px; }
+.radar-img :deep(img) { max-height: 300px; object-fit: contain; }
+.radar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 240px;
+}
+.radar-empty {
+  color: #ccc;
+  font-size: 14px;
+}
+
+/* ===== 详细数据折叠面板 ===== */
+.detail-section {
+  margin-top: 24px;
+}
+.collapse-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555;
+}
+.detail-tabs {
+  margin-top: 8px;
+  box-shadow: none;
+}
+.detail-desc {
+  margin-top: 8px;
+}
+.detail-desc :deep(.el-descriptions__label) {
+  font-weight: 500;
+  width: 180px;
+}
+.detail-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.detail-na {
+  color: #ccc;
+}
+
+/* ===== 原始图片 ===== */
 .input-section { margin-top: 40px; }
 .input-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
 .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
@@ -196,6 +467,7 @@ onUnmounted(() => clearInterval(timer))
 .input-img { width: 100%; height: 100%; }
 .input-img :deep(img) { object-fit: cover; }
 
+/* ===== 分析图表 ===== */
 .analysis-section { margin-top: 40px; }
 .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .chart-item {
@@ -204,13 +476,16 @@ onUnmounted(() => clearInterval(timer))
   overflow: hidden;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
 }
 .chart-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
-.chart-item img { width: 100%; display: block; }
+.chart-el-img { width: 100%; display: block; }
+.chart-el-img :deep(img) { object-fit: contain; }
 
+/* ===== 分析表格 ===== */
 .table-section { margin-top: 40px; }
 .table-card {
   background: #fff;

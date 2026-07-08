@@ -28,7 +28,7 @@ func (m *MockEngine) Run(ctx context.Context, taskDir string) (*Meta, error) {
 	// 取 input 目录第一张图，复制为 result.jpg，模拟完整链路
 	inputFiles, err := os.ReadDir(inputDir)
 	if err != nil {
-		return nil, fmt.Errorf("读取输入目录失败: %w", err)
+		return nil, fmt.Errorf("读取上传图片失败: %w", err)
 	}
 
 	var copied bool
@@ -37,7 +37,7 @@ func (m *MockEngine) Run(ctx context.Context, taskDir string) (*Meta, error) {
 			src := filepath.Join(inputDir, f.Name())
 			dst := filepath.Join(resultDir, "result.jpg")
 			if err := copyFile(src, dst); err != nil {
-				return nil, fmt.Errorf("复制结果图失败: %w", err)
+				return nil, fmt.Errorf("生成结果图失败: %w", err)
 			}
 			copied = true
 			break
@@ -45,7 +45,7 @@ func (m *MockEngine) Run(ctx context.Context, taskDir string) (*Meta, error) {
 	}
 
 	if !copied {
-		return nil, fmt.Errorf("输入目录无图片文件")
+		return nil, fmt.Errorf("上传目录中未找到图片文件")
 	}
 
 	// 写入 meta.json

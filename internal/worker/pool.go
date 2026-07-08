@@ -84,8 +84,8 @@ func (p *Pool) processJob(job Job) {
 	meta, stitchErr := job.StitchEngine.Run(stitchCtx, job.TaskDir)
 	stitchCancel()
 
-	if stitchErr != nil {
-		// 拼接失败，直接记录失败，不再跑分析
+	if stitchErr != nil || (meta != nil && meta.Status == "error") {
+		// 拼接失败（Go 级错误 或 Python 返回 status="error"），直接记录失败，不跑分析
 		p.service.HandleResult(job.TaskID, job.TaskDir, meta, stitchErr)
 		return
 	}
