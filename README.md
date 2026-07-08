@@ -394,12 +394,15 @@ PIS-web/
 │       ├── App.vue             # 根组件（导航栏 + 语言切换）
 │       ├── i18n.js             # 国际化配置
 │       ├── api/index.js        # API 封装
-│       ├── router/index.js     # 路由（/, /task/:id, /history）
+│       ├── composables/
+│       │   └── useDarkMode.js      # 暗色模式状态管理
+│       ├── router/index.js     # 路由（/, /task/:id, /history, /about）
 │       ├── locales/{zh,en}.js  # 中/英语言包
 │       └── views/
 │           ├── UploadView.vue       # 上传页
 │           ├── TaskDetailView.vue   # 详情页（结果 + 评估）
-│           └── HistoryView.vue      # 历史页
+│           ├── HistoryView.vue      # 历史页
+│           └── AboutView.vue        # 关于我们
 │
 ├── store/                      # 运行时数据（gitignore）
 ├── logs/                       # access.log + task.log（gitignore）
