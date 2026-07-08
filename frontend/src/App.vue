@@ -16,7 +16,14 @@
             <el-icon><Clock /></el-icon>
             {{ $t('nav.history') }}
           </el-menu-item>
+          <el-menu-item index="/about">
+            <el-icon><UserFilled /></el-icon>
+            {{ $t('nav.about') }}
+          </el-menu-item>
         </el-menu>
+        <el-button class="theme-btn" text @click="toggleDark">
+          <el-icon :size="18"><component :is="isDark ? Sunny : Moon" /></el-icon>
+        </el-button>
         <el-button class="lang-btn" text @click="toggleLang">
           {{ $i18n.locale === 'zh' ? 'EN' : '中' }}
         </el-button>
@@ -33,8 +40,11 @@
 </template>
 
 <script setup>
-import { Upload, Clock } from '@element-plus/icons-vue'
+import { Upload, Clock, UserFilled, Moon, Sunny } from '@element-plus/icons-vue'
 import { switchLang } from './i18n'
+import { useDarkMode } from './composables/useDarkMode'
+
+const { isDark, toggle: toggleDark } = useDarkMode()
 
 function toggleLang() {
   switchLang()
@@ -47,11 +57,11 @@ function toggleLang() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--nav-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--nav-border);
+  box-shadow: var(--nav-shadow);
 }
 
 .nav-inner {
@@ -73,6 +83,11 @@ function toggleLang() {
 
 .nav-menu .el-menu-item.is-active {
   border-bottom-color: #409EFF !important;
+}
+
+.theme-btn {
+  margin-right: 4px;
+  font-size: 14px;
 }
 
 .lang-btn {

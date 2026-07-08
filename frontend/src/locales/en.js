@@ -2,6 +2,7 @@ export default {
   nav: {
     upload: 'Upload',
     history: 'History',
+    about: 'About',
   },
   upload: {
     title: 'Panoramic Image Stitching',
@@ -50,6 +51,19 @@ export default {
     empty_all: 'No stitch history yet. Upload your first set of images.',
     show_all: 'Show All',
     empty_filtered: 'No records match the selected filter',
+  },
+  about: {
+    intro_title: 'About PIS',
+    intro_p1: 'PIS is a web-based panoramic image stitching system. Upload multiple overlapping images and the system automatically generates a high-quality stitched panorama.',
+    intro_algo: 'The core pipeline uses classic feature detectors such as SIFT / ORB for keypoint extraction and description, followed by nearest-neighbor matching with RANSAC robust estimation for homography computation and image registration. Multi-band blending and graph cut seam estimation eliminate visible seams and ghosting, ensuring visual consistency in the final panorama.',
+    intro_data: 'A built-in quality assessment framework evaluates each stitch with multi-dimensional metrics — inlier ratio, reprojection RMSE, panoramic SSIM, effective canvas ratio, and sharpness retention — visualized through radar charts, tables, and analysis plots for intuitive quality insight.',
+    intro_p2: 'Built with Go + Gin on the backend and Vue 3 + Element Plus on the frontend. Supports asynchronous task queuing, stitch history management, and quality assessment.',
+    tech_title: 'Tech Stack',
+    team_title: 'Team',
+    contact_title: 'Contact',
+    contact_value: 'For questions or suggestions, please open an issue on the project repository.',
+    github_label: 'github.com/jiajia-jun/PIS',
+    github_url: 'https://github.com/jiajia-jun/PIS',
   },
   eval: {
     title: 'Stitch Quality Assessment',

@@ -451,9 +451,9 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .detail-page { max-width: 900px; margin: 0 auto; }
 .page-title { margin-bottom: 24px; font-size: 20px; word-break: break-all; }
 .loading-box { text-align: center; padding: 80px 0; }
-.spinner { animation: spin 1s linear infinite; color: #409EFF; }
-.loading-box p { margin-top: 16px; font-size: 16px; color: #666; }
-.elapsed-text { font-size: 13px !important; color: #bbb !important; margin-top: 6px !important; }
+.spinner { animation: spin 1s linear infinite; color: var(--accent); }
+.loading-box p { margin-top: 16px; font-size: 16px; color: var(--text-tertiary); }
+.elapsed-text { font-size: 13px !important; color: var(--text-light) !important; margin-top: 6px !important; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-box { padding: 60px 0; }
 .meta-bar {
@@ -461,23 +461,23 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
   gap: 32px;
   margin-bottom: 32px;
   padding: 20px 24px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   font-size: 14px;
-  color: #666;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  color: var(--text-tertiary);
+  box-shadow: var(--shadow-sm);
 }
-.meta-bar strong { color: #333; font-size: 18px; }
+.meta-bar strong { color: var(--text-primary); font-size: 18px; }
 .result-section h3, .analysis-section h3, .table-section h3, .input-section h3 {
   margin-bottom: 16px; font-size: 18px; font-weight: 600;
 }
-.preview-hint { font-size: 12px; color: #999; font-weight: 400; }
+.preview-hint { font-size: 12px; color: var(--text-hint); font-weight: 400; }
 .result-image-wrap {
   position: relative;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-result);
   cursor: pointer;
   max-height: 500px;
 }
@@ -545,10 +545,10 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 /* ===== 评估摘要区 ===== */
 .eval-summary {
   margin-top: 40px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 .eval-summary h3 {
   margin: 0 0 20px;
@@ -572,24 +572,24 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .eval-table th {
   text-align: left;
   padding: 8px 12px;
-  background: #f5f7fa;
-  color: #666;
+  background: var(--bg-tag);
+  color: var(--text-tertiary);
   font-weight: 600;
-  border-bottom: 2px solid #e4e7ed;
+  border-bottom: 2px solid var(--border-table);
 }
 .eval-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
 }
-.eval-label { color: #333; font-weight: 500; }
-.eval-value { color: #333; font-weight: 600; font-variant-numeric: tabular-nums; }
+.eval-label { color: var(--text-primary); font-weight: 500; }
+.eval-value { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
 .eval-radar {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 240px;
-  background: #fafbfc;
+  background: var(--bg-card-alt);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
@@ -605,7 +605,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
   height: 240px;
 }
 .radar-empty {
-  color: #ccc;
+  color: var(--text-light);
   font-size: 14px;
 }
 
@@ -616,7 +616,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .collapse-title {
   font-size: 15px;
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
 }
 .detail-tabs {
   margin-top: 8px;
@@ -634,7 +634,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
   font-variant-numeric: tabular-nums;
 }
 .detail-na {
-  color: #ccc;
+  color: var(--text-light);
 }
 
 /* ===== 原始图片 ===== */
@@ -642,7 +642,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .input-section h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
 .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .input-item {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 10px;
   overflow: hidden;
   aspect-ratio: 4 / 3;
@@ -651,7 +651,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 }
 .input-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-hover);
 }
 .input-img { width: 100%; height: 100%; }
 .input-img :deep(img) { object-fit: cover; }
@@ -660,16 +660,16 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .analysis-section { margin-top: 40px; }
 .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .chart-item {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 .chart-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-chart-hover);
 }
 .chart-el-img { width: 100%; display: block; }
 .chart-el-img :deep(img) { object-fit: contain; }
@@ -677,12 +677,12 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 /* ===== 分析表格 ===== */
 .table-section { margin-top: 40px; }
 .table-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
-.table-title { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #333; }
+.table-title { margin: 0 0 16px; font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .table-wrap { overflow-x: auto; }
 </style>
