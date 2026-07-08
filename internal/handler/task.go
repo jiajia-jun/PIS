@@ -56,6 +56,13 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		"created_at":  task.CreatedAt.Format(time.RFC3339),
 	}
 
+	// 原始图片 URL（completed 和 failed 都返回）
+	if task.Status == model.StatusCompleted || task.Status == model.StatusFailed {
+		if urls := listInputFiles(h.uploadDir, task.ID); len(urls) > 0 {
+			resp["input_urls"] = urls
+		}
+	}
+
 	if task.Status == model.StatusCompleted {
 		resp["cost_ms"] = task.CostMs
 		resp["keypoints"] = task.Keypoints
@@ -66,9 +73,6 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		}
 		if urls := listTableFiles(h.analysisDir, task.ID); len(urls) > 0 {
 			resp["table_urls"] = urls
-		}
-		if urls := listInputFiles(h.uploadDir, task.ID); len(urls) > 0 {
-			resp["input_urls"] = urls
 		}
 	}
 
