@@ -201,21 +201,33 @@ def _get_sift():
         return cv2.ORB_create()
 
 
-def match_pair(img1, img2, lowe_ratio=LOWE_RATIO):
+def _detect_all(images):
     """
-    对相邻图片对做 SIFT + BFMatcher + knnMatch + RANSAC 匹配.
-    返回 (H, inliers, total_matches, inlier_num)
-
-    H             -- 3x3 单应矩阵，失败时为 None
-    inliers       -- Nx4 匹配点坐标 [x1,y1,x2,y2]，失败时为 None
-    total_matches -- knnMatch 产生的总匹配数
-    inlier_num    -- RANSAC 通过的内点数
+    对所有图片一次性提取 SIFT 特征，避免重复计算.
+    每张图只 detectAndCompute 一次，缓存 kp/des 供后续逐对匹配复用.
+    返回 [(kp, des), ...]，失败的单张图对应位置为 (None, None).
     """
     sift = _get_sift()
-    kp1, des1 = sift.detectAndCompute(img1, None)
-    kp2, des2 = sift.detectAndCompute(img2, None)
+    results = []
+    for img in images:
+        try:
+            kp, des = sift.detectAndCompute(img, None)
+            if des is not None and len(des) >= 4:
+                results.append((kp, des))
+            else:
+                results.append((None, None))
+        except cv2.error:
+            results.append((None, None))
+    return results
 
-    if des1 is None or des2 is None or len(des1) < 4 or len(des2) < 4:
+
+def match_pair(kp1, des1, kp2, des2, lowe_ratio=LOWE_RATIO):
+    """
+    对相邻图片对的特征描述子做 BFMatcher + knnMatch + RANSAC 匹配.
+    接受已缓存的 kp/des 避免重复 detectAndCompute.
+    返回 (H, inliers, total_matches, inlier_num)
+    """
+    if des1 is None or des2 is None:
         return None, None, 0, 0
 
     # BFMatcher + knn
@@ -237,7 +249,7 @@ def match_pair(img1, img2, lowe_ratio=LOWE_RATIO):
     total_matches = len(good)
 
     if len(good) < 4:
-        return None, None, 0, 0
+        return None, None, total_matches, 0
 
     src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -260,18 +272,21 @@ def match_pair(img1, img2, lowe_ratio=LOWE_RATIO):
 def match_adjacent_pairs(images):
     """
     对所有相邻图片对做特征匹配.
+    先一次性提取所有图片的 SIFT 特征（避免重复 detectAndCompute），
+    再逐对匹配相邻图片.
     返回 (H_list, inliers_list, result_info)
-
-    H_list       -- [3x3 ndarray, ...] 每个相邻对的单应矩阵
-    inliers_list -- [Nx4 ndarray, ...] 每个相邻对的内点坐标
-    result_info  -- {"pairs": [{total_matches, inlier_num}, ...]}
     """
+    # 先一次性检测所有图片的特征，避免重复计算
+    features = _detect_all(images)
+
     H_list = []
     inliers_list = []
     result_info = {"pairs": []}
 
     for i in range(len(images) - 1):
-        H, inliers, total, inlier_num = match_pair(images[i], images[i + 1])
+        kp1, des1 = features[i]
+        kp2, des2 = features[i + 1]
+        H, inliers, total, inlier_num = match_pair(kp1, des1, kp2, des2)
 
         if H is not None:
             H_list.append(H)
