@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-PIS-web 数据分析适配器
-桥接 stitch.py(新格式) → test5.py(旧格式) → 前端(展示格式)
+PIS-web 评估管线适配器
+桥接 stitch.py(新格式) → eval_core.py(评估核心) → 前端(展示格式)
 
-调用方式: python3 analysis.py {任务目录} {分析输出目录}
+调用方式: python3 eval_pipeline.py {任务目录} {分析输出目录}
 
 职责:
-  A. 入参桥接 — 把 stitch.py 新格式转为 test5 认识的旧格式
-  B. 调数据组 — from test5 import run_production_analysis，一行不改
-  C. 出参转换 — 读 test5 产出的 evaluation_result.json，映射出
+  A. 入参桥接 — 把 stitch.py 新格式转为 eval_core 认识的格式
+  B. 调评估核心 — from eval_core import run_production_analysis
+  C. 出参转换 — 读 eval_core 产出的 evaluation_result.json，映射出
      eval_result.json + full_metrics.json + 中文大尺寸图表
 """
 
@@ -70,7 +70,7 @@ def _setup_matplotlib():
 # ==================== 步骤 A: 入参桥接 ====================
 
 def bridge_input(task_dir):
-    """将 stitch.py 新格式转为 test5 兼容格式（保留多对数据，仅转换时间单位）"""
+    """将 stitch.py 新格式转为 eval_core 兼容格式（保留多对数据，仅转换时间单位）"""
     result_dir = os.path.join(task_dir, "result")
 
     # H_list.npy / inliers_list.pkl 保留不动 —— PanoramaEvaluator 已支持直接读取多对格式
@@ -109,7 +109,7 @@ def bridge_input(task_dir):
 # ==================== 步骤 C: 出参转换 ====================
 
 def _parse_evaluation_table(eval_path):
-    """解析 test5 产出的 evaluation_result.json，返回 {header: value} 字典"""
+    """解析 eval_core 产出的 evaluation_result.json，返回 {header: value} 字典"""
     with open(eval_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -237,7 +237,7 @@ def build_full_metrics(data, case_name, image_count):
     }
 
 
-# ==================== 图表生成（中文大尺寸，覆盖 test5 英文图） ====================
+# ==================== 图表生成（中文大尺寸，覆盖 eval_core 英文图） ====================
 
 def _draw_gauge(ax, value, title, max_val, good_high=True, color='#4e79a7',
                 is_pct=False, fontsize_val=28, fontsize_title=14):
@@ -426,14 +426,14 @@ def _generate_table_image(data, score_map, output_dir):
 
 def main():
     if len(sys.argv) != 3:
-        print("用法: python3 analysis.py {任务目录} {分析输出目录}", file=sys.stderr)
+        print("用法: python3 eval_pipeline.py {任务目录} {分析输出目录}", file=sys.stderr)
         sys.exit(0)
 
     task_dir = os.path.abspath(sys.argv[1])
     output_dir = os.path.abspath(sys.argv[2])
     case_name = os.path.basename(task_dir)
 
-    # 确保 scripts/ 在 sys.path 中（test5.py 所在目录）
+    # 确保 scripts/ 在 sys.path 中（eval_core.py 所在目录）
     script_dir = os.path.dirname(os.path.abspath(__file__))
     if script_dir not in sys.path:
         sys.path.insert(0, script_dir)
@@ -447,14 +447,14 @@ def main():
         # 确保输出目录存在（Go 后端已创建，此处兜底）
         os.makedirs(output_dir, exist_ok=True)
 
-        # ==== B. 调数据组核心代码（不动 test5.py 一行）====
-        from test5 import run_production_analysis
+        # ==== B. 调评估核心 ====
+        from eval_core import run_production_analysis
         run_production_analysis(task_dir, output_dir)
 
         # ==== C. 出参转换 ====
         eval_path = os.path.join(output_dir, "evaluation_result.json")
         if not os.path.exists(eval_path):
-            raise FileNotFoundError(f"test5 未产出 evaluation_result.json")
+            raise FileNotFoundError(f"eval_core 未产出 evaluation_result.json")
 
         data = _parse_evaluation_table(eval_path)
 
@@ -498,7 +498,7 @@ def main():
         with open(os.path.join(output_dir, "full_metrics.json"), "w", encoding="utf-8") as f:
             json.dump(full_metrics, f, ensure_ascii=False, indent=2)
 
-        # 生成中文图表（覆盖 test5 英文图）
+        # 生成中文图表（覆盖 eval_core 英文图）
         generate_charts(data, output_dir)
 
         elapsed = int((time.time() - start) * 1000)
