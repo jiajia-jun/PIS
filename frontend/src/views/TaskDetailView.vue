@@ -29,18 +29,19 @@
 
       <div class="result-section">
         <h3>{{ $t('task.result') }} <span class="preview-hint">{{ $t('task.preview_hint') }}</span></h3>
-        <div class="result-image-wrap">
-          <el-image
-            :src="resultSrc"
-            :preview-src-list="[resultSrc]"
-            :preview-teleported="true"
-            fit="contain"
-            class="result-el-image"
-          >
-            <template #placeholder>
-              <img :src="thumbnailSrc" class="result-placeholder" alt="loading" />
-            </template>
-          </el-image>
+        <div
+          class="result-image-wrap"
+          ref="zoomWrap"
+          @mousemove="onZoomMove"
+          @mouseenter="onZoomEnter"
+          @mouseleave="onZoomLeave"
+        >
+          <img :src="resultSrc" class="result-el-image" alt="panorama" />
+          <div
+            v-show="zooming"
+            class="zoom-lens"
+            :style="lensStyle"
+          ></div>
         </div>
       </div>
 
@@ -182,6 +183,40 @@ const task = ref(null)
 const notFound = ref(false)
 const tableData = ref([])
 let timer = null
+
+// ---- 鼠标位置缩放（放大镜） ----
+const zoomWrap = ref(null)
+const zooming = ref(false)
+const lensStyle = ref({})
+
+const ZOOM = 2.5
+const LENS = 180  // 放大镜尺寸 px
+
+function onZoomEnter() { zooming.value = true }
+function onZoomLeave() { zooming.value = false }
+function onZoomMove(e) {
+  const wrap = zoomWrap.value
+  if (!wrap) return
+  const rect = wrap.getBoundingClientRect()
+  const x = e.clientX - rect.left   // 鼠标在容器内 X
+  const y = e.clientY - rect.top    // 鼠标在容器内 Y
+
+  // 放大镜背景图为结果大图，background-size 按容器尺寸 × ZOOM 放大
+  // background-position 把鼠标指向的点对齐到放大镜中心
+  const bgX = -(x * ZOOM) + LENS / 2
+  const bgY = -(y * ZOOM) + LENS / 2
+
+  lensStyle.value = {
+    left: `${x - LENS / 2}px`,
+    top: `${y - LENS / 2}px`,
+    width: `${LENS}px`,
+    height: `${LENS}px`,
+    backgroundImage: `url(${resultSrc.value})`,
+    backgroundSize: `${rect.width * ZOOM}px ${rect.height * ZOOM}px`,
+    backgroundPosition: `${bgX}px ${bgY}px`,
+    backgroundRepeat: 'no-repeat',
+  }
+}
 
 // ---- 评估数据 ----
 const evalData = ref(null)       // eval_result.json
@@ -333,24 +368,29 @@ onUnmounted(() => clearInterval(timer))
 }
 .preview-hint { font-size: 12px; color: #999; font-weight: 400; }
 .result-image-wrap {
+  position: relative;
   background: #fff;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  cursor: pointer;
+  cursor: none;
+  max-height: 500px;
 }
 .result-el-image {
   width: 100%;
   display: block;
   max-height: 500px;
-}
-.result-el-image :deep(img) { max-height: 500px; object-fit: contain; }
-.result-placeholder {
-  width: 100%;
-  display: block;
-  max-height: 500px;
   object-fit: contain;
-  filter: blur(8px);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.zoom-lens {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.8);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
+  pointer-events: none;
+  z-index: 10;
 }
 
 /* ===== 评估摘要区 ===== */
