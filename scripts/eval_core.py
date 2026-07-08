@@ -46,7 +46,7 @@ CONFIG = {
     "radar_dimensions": [
         "\u5339\u914d\u8d28\u91cf",
         "\u5bf9\u9f50\u7cbe\u5ea6",
-        "\u91cd\u53e0\u4e00\u81f4\u6027",
+        "\u62fc\u63a5\u4e00\u81f4\u6027",
         "\u753b\u5e03\u5229\u7528\u7387",
         "\u6e05\u6670\u5ea6",
         "\u8fd0\u884c\u6548\u7387"
@@ -593,7 +593,7 @@ class PanoramaEvaluator:
         scores["\u5bf9\u9f50\u7cbe\u5ea6"] = max(0.0, 1.0 - rmse / max(img_diag * 0.005, 1.0))
 
         ssim_val = _safe_float(metrics.get("\u5168\u666fSSIM", 0.0), 0.0)
-        scores["\u91cd\u53e0\u4e00\u81f4\u6027"] = ssim_val
+        scores["\u62fc\u63a5\u4e00\u81f4\u6027"] = ssim_val
         canvas_ratio = _safe_float(metrics.get("\u6709\u6548\u753b\u5e03\u5360\u6bd4", 0.0), 0.0)
         scores["\u753b\u5e03\u5229\u7528\u7387"] = canvas_ratio
 
@@ -1179,7 +1179,7 @@ class WebApiEvaluator:
         rmse = metrics.get("平均重投影RMSE(像素)", img_diag * 0.005) or img_diag * 0.005
         scores["对齐精度"] = max(0.0, 1.0 - rmse / max(img_diag * 0.005, 1.0))
 
-        scores["重叠一致性"] = metrics.get("平均重叠区SSIM", 0.0) or 0.0
+        scores["拼接一致性"] = metrics.get("平均重叠区SSIM", 0.0) or 0.0
         scores["画布利用率"] = metrics.get("有效画布占比", 0.0)
 
         # 清晰度保持率：100% 即为满分
@@ -1357,7 +1357,7 @@ _EN_TEXTS = {
     "dims": {
         "匹配质量": "Match Quality",
         "对齐精度": "Alignment",
-        "重叠一致性": "Overlap Consistency",
+        "拼接一致性": "Stitch Consistency",
         "画布利用率": "Canvas Usage",
         "清晰度": "Sharpness",
         "运行效率": "Efficiency"
@@ -1384,7 +1384,7 @@ def generate_single_task_charts(metrics, composite_scores, output_dir, use_engli
 
     inlier_ratio = _safe_float(metrics.get("内点率"), 0.0)
     rmse_val = _safe_float(metrics.get("重投影RMSE(像素)"))
-    ssim_val = _safe_float(metrics.get("重叠区SSIM"), 0.0)
+    ssim_val = _safe_float(metrics.get("全景SSIM"), 0.0)
     time_val = _safe_float(metrics.get("总耗时(秒)"), 0.0)
     canvas_val = _safe_float(metrics.get("有效画布占比"), 0.0)
     overall_score = composite_scores.get("综合得分", 0.0)
@@ -1422,7 +1422,7 @@ def generate_single_task_charts(metrics, composite_scores, output_dir, use_engli
     _draw_gauge(axes[0, 0], inlier_ratio, "匹配质量", 1.0, True, colors["inlier_ratio"], is_pct=True)
     rmse_title = "Reprojection RMSE" if use_english else "重投影RMSE"
     _draw_gauge(axes[0, 1], rmse_val if rmse_val is not None else None, rmse_title, 10.0, False, colors["rmse"])
-    _draw_gauge(axes[0, 2], ssim_val, "重叠一致性", 1.0, True, colors["ssim"], is_pct=True)
+    _draw_gauge(axes[0, 2], ssim_val, "拼接一致性", 1.0, True, colors["ssim"], is_pct=True)
     time_title = "Time Cost (s)" if use_english else "总耗时(秒)"
     _draw_gauge(axes[1, 0], time_val, time_title, 30.0, False, colors["time"])
     canvas_title = "Canvas Usage" if use_english else "画布利用率"
@@ -1434,7 +1434,7 @@ def generate_single_task_charts(metrics, composite_scores, output_dir, use_engli
     plt.savefig(os.path.join(output_dir, "metrics_dashboard.png"), dpi=CONFIG["chart_dpi"], bbox_inches='tight')
     plt.close()
 
-    dims_cn = ["匹配质量", "对齐精度", "重叠一致性", "画布利用率", "清晰度", "运行效率"]
+    dims_cn = ["匹配质量", "对齐精度", "拼接一致性", "画布利用率", "清晰度", "运行效率"]
     dims = [_get_text("dims", d, use_english) for d in dims_cn]
     n_dims = len(dims_cn)
     angles = np.linspace(0, 2 * np.pi, n_dims, endpoint=False).tolist()

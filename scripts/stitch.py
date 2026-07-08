@@ -16,7 +16,7 @@ PIS-web 全景图像拼接脚本
     {任务目录}/result/meta.json        -- 元信息（成功/失败都必须写）
     {任务目录}/result/result_info.json -- 匹配统计（分析组用）
     {任务目录}/result/H_list.npy       -- 相邻图对的单应矩阵列表
-    {任务目录}/result/inliers_list.npy -- 相邻图对的内点坐标列表
+    {任务目录}/result/inliers_list.pkl -- 相邻图对的内点坐标列表
 
 容错:
     任何异常均 catch → 写 meta.json (status="error") → exit 0
