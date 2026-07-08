@@ -15,9 +15,21 @@
     </div>
 
     <!-- failed -->
-    <div v-else-if="task.status === 'failed'" class="error-box">
-      <el-result icon="error" :title="$t('task.failed')" :sub-title="task.error || 'Unknown error'" />
-    </div>
+    <template v-else-if="task.status === 'failed'">
+      <div class="error-box">
+        <el-result icon="error" :title="$t('task.failed')" :sub-title="task.error || 'Unknown error'" />
+      </div>
+
+      <!-- 失败时也展示原始图片 -->
+      <div v-if="task.input_urls?.length" class="input-section">
+        <h3>{{ $t('task.source_images') }}</h3>
+        <div class="input-grid">
+          <div v-for="url in task.input_urls" :key="url" class="input-item">
+            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img" />
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- completed -->
     <template v-else-if="task.status === 'completed'">

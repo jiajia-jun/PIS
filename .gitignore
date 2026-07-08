@@ -9,3 +9,6 @@ scripts/__pycache__/
 logs/
 pis-web.exe
 webTest/logs/
+PIS_DATASET/
+anal_test/
+store/
