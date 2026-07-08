@@ -39,7 +39,7 @@
         :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
-        @current-change="fetchHistory"
+        @current-change="onPageChange"
         @size-change="onSizeChange"
       />
     </div>
@@ -47,16 +47,39 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getHistory } from '../api'
 
 const router = useRouter()
 const route = useRoute()
+
+const HISTORY_KEY = 'pis_history_page'
+
+function loadPage() {
+  // 优先级: URL query > sessionStorage > 默认值
+  const qp = Number(route.query.page)
+  const qs = Number(route.query.size)
+  if (qp >= 1) return { page: qp, size: qs >= 1 ? qs : 10 }
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY)
+    if (raw) {
+      const v = JSON.parse(raw)
+      if (v.p >= 1) return { page: v.p, size: v.s >= 1 ? v.s : 10 }
+    }
+  } catch { /* ignore */ }
+  return { page: 1, size: 10 }
+}
+
+function savePage() {
+  try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify({ p: page.value, s: size.value })) } catch { /* ignore */ }
+}
+
+const initial = loadPage()
 const items = ref([])
 const total = ref(0)
-const page = ref(Number(route.query.page) || 1)
-const size = ref(Number(route.query.size) || 10)
+const page = ref(initial.page)
+const size = ref(initial.size)
 
 function statusType(s) {
   const m = { completed: 'success', failed: 'danger', pending: 'info', processing: 'warning' }
@@ -65,9 +88,12 @@ function statusType(s) {
 function formatTime(ts) { return ts ? new Date(ts).toLocaleString() : '-' }
 function indexMethod(idx) { return (page.value - 1) * size.value + idx + 1 }
 function goDetail(row) { router.push(`/task/${row.task_id}`) }
-function onSizeChange(v) { size.value = v; page.value = 1; syncQuery(); fetchHistory() }
-function syncQuery() {
-  router.replace({ query: { page: page.value, size: size.value } })
+function onSizeChange(v) { size.value = v; page.value = 1; update() }
+function onPageChange() { update() }
+function update() {
+  savePage()
+  router.replace({ query: { page: page.value, size: size.value } }).catch(() => {})
+  fetchHistory()
 }
 async function fetchHistory() {
   try {
@@ -75,8 +101,8 @@ async function fetchHistory() {
     if (res.code === 0) { items.value = res.data.items || []; total.value = res.data.total || 0 }
   } catch { /* ignore */ }
 }
-onMounted(fetchHistory)
-watch(page, syncQuery)
+onMounted(() => { update() })
+onUnmounted(() => { savePage() })
 </script>
 
 <style scoped>
