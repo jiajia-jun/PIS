@@ -6,6 +6,8 @@ docs/论文/
 全景拼接评估结果.csv
 全景拼接评估结果.json
 scripts/__pycache__/
+scripts/calibration_data2.npy
+scripts/pro2/
 logs/
 pis-web.exe
 webTest/logs/
