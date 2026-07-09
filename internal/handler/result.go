@@ -46,5 +46,6 @@ func (h *ResultHandler) GetResult(c *gin.Context) {
 		return
 	}
 
+	c.Header("Cache-Control", "public, max-age=3600")
 	c.File(resultPath)
 }

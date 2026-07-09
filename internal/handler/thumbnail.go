@@ -30,5 +30,6 @@ func (h *ThumbnailHandler) GetThumbnail(c *gin.Context) {
 
 	thumbPath := filepath.Join(h.uploadDir, taskID, "result", "thumb.jpg")
 	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "public, max-age=3600")
 	c.File(thumbPath)
 }
