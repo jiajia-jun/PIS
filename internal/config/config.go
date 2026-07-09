@@ -37,7 +37,6 @@ type ServerConfig struct {
 type WorkerConfig struct {
 	PoolSize       int `yaml:"pool_size"`
 	TimeoutSeconds int `yaml:"timeout_seconds"`
-	CleanupMinutes int `yaml:"cleanup_minutes"`
 }
 
 // StoreConfig 存储路径配置

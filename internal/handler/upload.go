@@ -115,10 +115,10 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 
 	taskDir := filepath.Join(h.uploadDir, taskID)
 
-	// 根据运行模式设置超时：normal=30s, super=60s
+	// 根据运行模式设置超时：normal=30s, super=200s
 	timeoutSeconds := 0 // 0 表示使用 Pool 默认值 30s
 	if mode == "super" {
-		timeoutSeconds = 60
+		timeoutSeconds = 200
 	}
 
 	if err := h.pool.Submit(worker.Job{
