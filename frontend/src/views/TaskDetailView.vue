@@ -27,8 +27,12 @@
       <div v-if="task.input_urls?.length" class="input-section">
         <h3>{{ $t('task.source_images') }}</h3>
         <div class="input-grid">
-          <div v-for="url in task.input_urls" :key="url" class="input-item">
-            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img" />
+          <div v-for="(url, idx) in task.input_urls" :key="url" class="input-item">
+            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img">
+              <template #placeholder>
+                <img :src="task.input_thumb_urls?.[idx]" class="input-thumb-placeholder" />
+              </template>
+            </el-image>
           </div>
         </div>
       </div>
@@ -172,8 +176,12 @@
       <div v-if="task.input_urls?.length" class="input-section">
         <h3>{{ $t('task.source_images') }}</h3>
         <div class="input-grid">
-          <div v-for="url in task.input_urls" :key="url" class="input-item">
-            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img" />
+          <div v-for="(url, idx) in task.input_urls" :key="url" class="input-item">
+            <el-image :src="url" :preview-src-list="[url]" :preview-teleported="true" fit="cover" class="input-img">
+              <template #placeholder>
+                <img :src="task.input_thumb_urls?.[idx]" class="input-thumb-placeholder" />
+              </template>
+            </el-image>
           </div>
         </div>
       </div>
@@ -666,6 +674,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 }
 .input-img { width: 100%; height: 100%; }
 .input-img :deep(img) { object-fit: cover; }
+.input-thumb-placeholder { width: 100%; height: 100%; object-fit: cover; filter: blur(4px); }
 
 /* ===== 分析图表 ===== */
 .analysis-section { margin-top: 40px; }

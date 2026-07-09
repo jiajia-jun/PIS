@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"time"
 
@@ -61,6 +62,12 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 	if task.Status == model.StatusCompleted || task.Status == model.StatusFailed {
 		if urls := listInputFiles(h.uploadDir, task.ID); len(urls) > 0 {
 			resp["input_urls"] = urls
+			// 缩略图 URL（一一对应）
+			thumbUrls := make([]string, len(urls))
+			for i, u := range urls {
+				thumbUrls[i] = strings.Replace(u, "/input/", "/input-thumb/", 1)
+			}
+			resp["input_thumb_urls"] = thumbUrls
 		}
 	}
 
