@@ -8,7 +8,7 @@ engine:
 
 server:
   host: "10.20.147.100"  # 留空=监听所有接口(0.0.0.0), 仅本地可设 127.0.0.1
-  port: 80
+  port: 8081
   upload_max_size_mb: 200
 
 worker:

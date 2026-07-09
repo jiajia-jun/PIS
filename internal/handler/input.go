@@ -49,5 +49,6 @@ func (h *InputHandler) GetInput(c *gin.Context) {
 		return
 	}
 
+	c.Header("Cache-Control", "public, max-age=3600")
 	c.File(filePath)
 }
