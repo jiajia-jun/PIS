@@ -40,8 +40,8 @@ export default {
     tables: 'Analysis Data',
     can_leave_hint: 'You can leave this page — the task will continue running in the background',
     mode_label: 'Mode',
-    mode_normal_label: 'Normal (30s)',
-    mode_super_label: 'Super (60s)',
+    mode_normal_label: 'Normal',
+    mode_super_label: 'Super',
   },
   history: {
     title: 'Stitch History',
