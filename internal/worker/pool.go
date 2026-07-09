@@ -85,6 +85,10 @@ func (p *Pool) processJob(job Job) {
 	if job.TimeoutSeconds > 0 {
 		timeout = time.Duration(job.TimeoutSeconds) * time.Second
 	}
+	p.logger.Info("start stitching",
+		zap.String("task_id", job.TaskID),
+		zap.Duration("timeout", timeout),
+	)
 	stitchCtx, stitchCancel := context.WithTimeout(context.Background(), timeout)
 	meta, stitchErr := job.StitchEngine.Run(stitchCtx, job.TaskDir)
 	stitchCancel()

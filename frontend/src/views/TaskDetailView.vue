@@ -13,6 +13,7 @@
       <el-icon class="spinner" :size="48"><Loading /></el-icon>
       <p>{{ task.status === 'pending' ? $t('task.pending') : $t('task.processing') }}</p>
       <p class="elapsed-text">{{ $t('task.elapsed', { n: elapsed }) }}</p>
+      <p class="mode-text">{{ $t('task.mode_label') }}: {{ task.mode === 'super' ? $t('task.mode_super_label') : $t('task.mode_normal_label') }}</p>
       <p class="leave-hint">{{ $t('task.can_leave_hint') }}</p>
     </div>
 
@@ -39,6 +40,7 @@
         <span>{{ $t('task.cost') }}: <strong>{{ task.cost_ms }}ms</strong></span>
         <span>{{ $t('task.keypoints') }}: <strong>{{ task.keypoints }}</strong></span>
         <span>{{ $t('task.images') }}: <strong>{{ task.image_count }}</strong></span>
+        <span>{{ $t('task.mode_label') }}: <strong>{{ task.mode === 'super' ? $t('task.mode_super_label') : $t('task.mode_normal_label') }}</strong></span>
       </div>
 
       <div class="result-section">
@@ -461,7 +463,8 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .spinner { animation: spin 1s linear infinite; color: var(--accent); }
 .loading-box p { margin-top: 16px; font-size: 16px; color: var(--text-tertiary); }
 .elapsed-text { font-size: 13px !important; color: var(--text-light) !important; margin-top: 6px !important; }
-.leave-hint { font-size: 13px; color: var(--text-light); margin-top: 8px; }
+.mode-text { font-size: 14px; color: var(--accent); font-weight: 600; margin-top: 6px; }
+.leave-hint { font-size: 13px; color: var(--text-light); margin-top: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-box { padding: 60px 0; }
 .meta-bar {
