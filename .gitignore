@@ -12,3 +12,7 @@ webTest/logs/
 PIS_DATASET/
 anal_test/
 store/
+!.gitignore
+!store/samples/
+!store/samples/input/
+!store/samples/input/*.jpg
