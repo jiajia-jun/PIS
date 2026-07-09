@@ -6,7 +6,6 @@ import json
 import csv
 import argparse
 import sys
-import signal
 import base64
 import io
 import pickle
@@ -2045,77 +2044,59 @@ def run_task_evaluation(task_id: str, store_root: str = "./store", generate_csv:
     return full_result
 
 
-HAS_SIGALRM = hasattr(signal, "SIGALRM")
-
-
-def _timeout_handler_prod(signum, frame):
-    raise TimeoutError("analysis timeout (30s limit)")
-
-
 def run_production_analysis(task_dir: str, output_dir: str, generate_report: bool = False, generate_csv: bool = False) -> dict:
     """
     生产环境标准分析入口，完全对齐接口文档
+    超时由 Go 后端 context.WithTimeout 统一控制，Python 侧不做限制
     :param task_dir: 任务目录（sys.argv[1]，Go传入）
     :param output_dir: 分析输出目录（sys.argv[2]，Go已提前创建）
     :param generate_report: 是否生成Markdown报告，线上默认False
     :param generate_csv: 是否生成CSV下载附件，线上默认False（仅JSON+PNG）
     :return: 完整评估结果字典
     """
-    old_handler = None
-    if HAS_SIGALRM:
-        old_handler = signal.signal(signal.SIGALRM, _timeout_handler_prod)
-        signal.alarm(30)
+    evaluator = PanoramaEvaluator(task_dir)
+    detail_metrics = evaluator.get_all_metrics()
+    detail_metrics["\u7528\u4f8b\u540d\u79f0"] = "current_task"
+    detail_metrics["\u72b6\u6001"] = "\u6210\u529f"
+    composite_scores = evaluator.get_composite_scores(detail_metrics)
 
-    try:
-        evaluator = PanoramaEvaluator(task_dir)
-        detail_metrics = evaluator.get_all_metrics()
-        detail_metrics["\u7528\u4f8b\u540d\u79f0"] = "current_task"
-        detail_metrics["\u72b6\u6001"] = "\u6210\u529f"
-        composite_scores = evaluator.get_composite_scores(detail_metrics)
+    for score_name, score_val in composite_scores.items():
+        detail_metrics["\u5206\u6570_" + score_name] = round(score_val, 4)
 
-        for score_name, score_val in composite_scores.items():
-            detail_metrics["\u5206\u6570_" + score_name] = round(score_val, 4)
+    table_result = _metrics_to_table_json([detail_metrics], title="\u5168\u666f\u62fc\u63a5\u8bc4\u4f30\u7ed3\u679c")
+    full_result = table_result
 
-        table_result = _metrics_to_table_json([detail_metrics], title="\u5168\u666f\u62fc\u63a5\u8bc4\u4f30\u7ed3\u679c")
-        full_result = table_result
+    json_save_path = os.path.join(output_dir, "evaluation_result.json")
+    tmp_json_path = json_save_path + ".tmp"
+    with open(tmp_json_path, "w", encoding="utf-8") as f:
+        json.dump(full_result, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_json_path, json_save_path)
 
-        json_save_path = os.path.join(output_dir, "evaluation_result.json")
-        tmp_json_path = json_save_path + ".tmp"
-        with open(tmp_json_path, "w", encoding="utf-8") as f:
-            json.dump(full_result, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_json_path, json_save_path)
+    if generate_csv:
+        csv_save_path = os.path.join(output_dir, "evaluation_result.csv")
+        with open(csv_save_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=list(detail_metrics.keys()))
+            writer.writeheader()
+            writer.writerow(detail_metrics)
 
-        if generate_csv:
-            csv_save_path = os.path.join(output_dir, "evaluation_result.csv")
-            with open(csv_save_path, "w", encoding="utf-8-sig", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=list(detail_metrics.keys()))
-                writer.writeheader()
-                writer.writerow(detail_metrics)
+    generate_single_task_charts(detail_metrics, composite_scores, output_dir, use_english=True)
 
-        generate_single_task_charts(detail_metrics, composite_scores, output_dir, use_english=True)
+    if generate_report:
+        csv_for_report = os.path.join(output_dir, "_temp_report.csv")
+        with open(csv_for_report, "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(detail_metrics.keys()))
+            w.writeheader()
+            w.writerow(detail_metrics)
+        report_save_path = os.path.join(output_dir, "evaluation_report.md")
+        generate_markdown_report(
+            csv_for_report,
+            report_save_path,
+            report_title="\u5168\u666f\u62fc\u63a5\u8d28\u91cf\u8bc4\u4f30\u62a5\u544a"
+        )
+        os.remove(csv_for_report)
 
-        if generate_report:
-            csv_for_report = os.path.join(output_dir, "_temp_report.csv")
-            with open(csv_for_report, "w", encoding="utf-8-sig", newline="") as f:
-                w = csv.DictWriter(f, fieldnames=list(detail_metrics.keys()))
-                w.writeheader()
-                w.writerow(detail_metrics)
-            report_save_path = os.path.join(output_dir, "evaluation_report.md")
-            generate_markdown_report(
-                csv_for_report,
-                report_save_path,
-                report_title="\u5168\u666f\u62fc\u63a5\u8d28\u91cf\u8bc4\u4f30\u62a5\u544a"
-            )
-            os.remove(csv_for_report)
-
-        print(f"analysis completed, output: {output_dir}")
-        return full_result
-    finally:
-        if HAS_SIGALRM:
-            signal.alarm(0)
-            if old_handler is not None:
-                signal.signal(signal.SIGALRM, old_handler)
-
+    print(f"analysis completed, output: {output_dir}")
+    return full_result
 
 def main():
     # ===== 生产环境标准入口：2个位置参数（优先级最高，对齐接口文档）=====

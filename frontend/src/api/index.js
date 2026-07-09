@@ -1,8 +1,9 @@
 const BASE = '/api'
 
-export async function uploadImages(files) {
+export async function uploadImages(files, mode = 'normal') {
   const form = new FormData()
   files.forEach((f) => form.append('images', f))
+  form.append('mode', mode)
   const res = await fetch(`${BASE}/upload`, { method: 'POST', body: form })
   return res.json()
 }

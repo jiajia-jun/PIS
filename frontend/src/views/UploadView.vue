@@ -55,6 +55,31 @@
           {{ uploading ? $t('upload.uploading') : $t('upload.btn_stitch', { n: fileList.length }) }}
         </el-button>
       </div>
+
+      <div class="mode-row">
+        <div class="mode-toggle">
+          <button
+            class="mode-option"
+            :class="{ active: !superMode }"
+            @mousedown.prevent
+            @click="superMode = false"
+          >{{ $t('upload.mode_normal') }}</button>
+          <button
+            class="mode-option"
+            :class="{ active: superMode }"
+            @mousedown.prevent
+            @click="superMode = true"
+          >{{ $t('upload.mode_super') }}</button>
+        </div>
+      </div>
+
+      <el-alert
+        :title="$t('upload.distortion_warning')"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="distortion-warning"
+      />
     </div>
   </div>
 </template>
@@ -74,6 +99,7 @@ const MAX_SIZE = 200 * 1024 * 1024
 const fileList = ref([])
 const uploading = ref(false)
 const uploadRef = ref(null)
+const superMode = ref(false)
 
 function formatSize(bytes) {
   if (!bytes || bytes === 0) return '-'
@@ -122,7 +148,7 @@ async function doUpload() {
 
   uploading.value = true
   try {
-    const res = await uploadImages(rawFiles)
+    const res = await uploadImages(rawFiles, superMode.value ? 'super' : 'normal')
     if (res.code === 0 && res.data?.task_id) {
       router.push(`/task/${res.data.task_id}`)
     } else {
@@ -270,5 +296,45 @@ async function doUpload() {
 .upload-actions .el-button:not(:disabled):hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.35);
+}
+
+.distortion-warning {
+  margin-top: 20px;
+}
+
+.mode-row {
+  text-align: center;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  gap: 8px;
+  padding: 4px;
+}
+
+.mode-option {
+  padding: 8px 20px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mode-option.active {
+  color: #409EFF;
+  border-color: #409EFF;
+  font-weight: 600;
+}
+
+.mode-option:not(.active):hover {
+  color: var(--text-primary);
 }
 </style>

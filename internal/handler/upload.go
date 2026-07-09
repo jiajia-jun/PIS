@@ -105,11 +105,19 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	}
 
 	taskDir := filepath.Join(h.uploadDir, taskID)
+
+	// 读取运行模式：normal=30s, super=60s
+	timeoutSeconds := 0 // 0 表示使用 Pool 默认值 30s
+	if mode := c.PostForm("mode"); mode == "super" {
+		timeoutSeconds = 60
+	}
+
 	if err := h.pool.Submit(worker.Job{
 		TaskID:         taskID,
 		TaskDir:        taskDir,
 		StitchEngine:   h.stitchEngine,
 		AnalysisEngine: h.analysisEngine,
+		TimeoutSeconds: timeoutSeconds,
 	}, 3*time.Second); err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"code":    503,

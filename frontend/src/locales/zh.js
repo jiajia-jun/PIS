@@ -18,6 +18,9 @@ export default {
     size_exceed: '文件 {name} 超过 200MB 限制',
     selected_count: '已选择 {n} 张图片',
     clear_all: '清空全部',
+    mode_normal: '普通模式',
+    mode_super: '超能模式',
+    distortion_warning: '注意：当传入图片不符合全景拼接规范时，结果可能会失真',
   },
   task: {
     title: '任务',
@@ -35,6 +38,7 @@ export default {
     source_images: '原始图片',
     charts: '分析图表',
     tables: '分析数据',
+    can_leave_hint: '您可以离开当前页面，任务将在后台继续运行',
   },
   history: {
     title: '拼接历史',

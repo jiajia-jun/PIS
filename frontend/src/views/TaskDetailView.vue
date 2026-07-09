@@ -13,6 +13,7 @@
       <el-icon class="spinner" :size="48"><Loading /></el-icon>
       <p>{{ task.status === 'pending' ? $t('task.pending') : $t('task.processing') }}</p>
       <p class="elapsed-text">{{ $t('task.elapsed', { n: elapsed }) }}</p>
+      <p class="leave-hint">{{ $t('task.can_leave_hint') }}</p>
     </div>
 
     <!-- failed -->
@@ -224,9 +225,15 @@ const taskId = route.params.taskId
 const task = ref(null)
 const notFound = ref(false)
 const tableData = ref([])
-const elapsed = ref(0)
+const now = ref(Date.now())
 let timer = null
 let elapsedTimer = null
+
+const elapsed = computed(() => {
+  if (!task.value?.created_at) return 0
+  const created = new Date(task.value.created_at).getTime()
+  return Math.max(0, Math.floor((now.value - created) / 1000))
+})
 
 // ---- 全屏大图查看器 ----
 const viewerOpen = ref(false)
@@ -412,7 +419,7 @@ async function fetchFullMetrics() {
 
 function startElapsedTimer() {
   if (elapsedTimer) return
-  elapsedTimer = setInterval(() => { elapsed.value++ }, 1000)
+  elapsedTimer = setInterval(() => { now.value = Date.now() }, 1000)
 }
 
 function stopElapsedTimer() {
@@ -454,6 +461,7 @@ onUnmounted(() => { clearInterval(timer); stopElapsedTimer() })
 .spinner { animation: spin 1s linear infinite; color: var(--accent); }
 .loading-box p { margin-top: 16px; font-size: 16px; color: var(--text-tertiary); }
 .elapsed-text { font-size: 13px !important; color: var(--text-light) !important; margin-top: 6px !important; }
+.leave-hint { font-size: 13px; color: var(--text-light); margin-top: 8px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-box { padding: 60px 0; }
 .meta-bar {

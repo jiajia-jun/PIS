@@ -157,6 +157,7 @@ func (a *App) registerAPI(r *gin.Engine) {
 
 func (a *App) registerStatic(r *gin.Engine) {
 	r.Static("/assets", "./frontend/dist/assets")
+	r.Static("/avatars", "./frontend/dist/avatars")
 	r.StaticFile("/favicon.svg", "./frontend/dist/favicon.svg")
 	r.NoRoute(func(c *gin.Context) {
 		c.File("./frontend/dist/index.html")
