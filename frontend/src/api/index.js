@@ -8,6 +8,11 @@ export async function uploadImages(files, mode = 'normal') {
   return res.json()
 }
 
+export async function uploadSample(mode = 'normal') {
+  const res = await fetch(`${BASE}/upload/sample?mode=${mode}`, { method: 'POST' })
+  return res.json()
+}
+
 export async function getTask(taskId) {
   const res = await fetch(`${BASE}/task/${taskId}`)
   return res.json()

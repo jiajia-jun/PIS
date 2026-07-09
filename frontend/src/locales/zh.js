@@ -21,6 +21,9 @@ export default {
     mode_normal: '普通模式',
     mode_super: '超能模式',
     distortion_warning: '注意：当传入图片不符合全景拼接规范时，结果可能会失真',
+    sample_btn: '使用示例图片体验',
+    sample_loading: '正在创建示例任务...',
+    sample_desc: '没有合适的图片？',
   },
   task: {
     title: '任务',
@@ -46,6 +49,7 @@ export default {
   history: {
     title: '拼接历史',
     index: '序号',
+    thumb: '缩略图',
     task_id: '任务 ID',
     status: '状态',
     images: '图片数',

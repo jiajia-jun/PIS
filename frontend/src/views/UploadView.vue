@@ -73,6 +73,13 @@
         </div>
       </div>
 
+      <div class="sample-row">
+        {{ $t('upload.sample_desc') }}
+        <el-button class="sample-btn" type="primary" text @click="doUploadSample" :loading="sampleLoading">
+          {{ $t('upload.sample_btn') }}
+        </el-button>
+      </div>
+
       <el-alert
         :title="$t('upload.distortion_warning')"
         type="warning"
@@ -90,7 +97,7 @@ import { useRouter } from 'vue-router'
 import { UploadFilled, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { uploadImages } from '../api'
+import { uploadImages, uploadSample } from '../api'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -100,6 +107,7 @@ const fileList = ref([])
 const uploading = ref(false)
 const uploadRef = ref(null)
 const superMode = ref(false)
+const sampleLoading = ref(false)
 
 function formatSize(bytes) {
   if (!bytes || bytes === 0) return '-'
@@ -158,6 +166,22 @@ async function doUpload() {
     ElMessage.error(t('upload.network_error'))
   } finally {
     uploading.value = false
+  }
+}
+
+async function doUploadSample() {
+  sampleLoading.value = true
+  try {
+    const res = await uploadSample(superMode.value ? 'super' : 'normal')
+    if (res.code === 0 && res.data?.task_id) {
+      router.push(`/task/${res.data.task_id}`)
+    } else {
+      ElMessage.error(res.message || t('upload.failed'))
+    }
+  } catch {
+    ElMessage.error(t('upload.network_error'))
+  } finally {
+    sampleLoading.value = false
   }
 }
 </script>
@@ -300,6 +324,19 @@ async function doUpload() {
 
 .distortion-warning {
   margin-top: 20px;
+}
+
+.sample-row {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sample-btn {
+  font-size: 13px;
+  padding: 0;
+  vertical-align: baseline;
 }
 
 .mode-row {

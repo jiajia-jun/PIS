@@ -125,4 +125,3 @@ func (p *Pool) processJob(job Job) {
 	// 拼接成功，交给 Service 善后
 	p.service.HandleResult(job.TaskID, job.TaskDir, meta, nil)
 }
-

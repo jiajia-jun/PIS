@@ -21,6 +21,9 @@ export default {
     mode_normal: 'Normal',
     mode_super: 'Super',
     distortion_warning: 'Note: Results may be distorted if the input images do not meet panorama stitching requirements',
+    sample_btn: 'Try with Sample Images',
+    sample_loading: 'Creating sample task...',
+    sample_desc: 'No suitable images?',
   },
   task: {
     title: 'Task',
@@ -46,6 +49,7 @@ export default {
   history: {
     title: 'Stitch History',
     index: '#',
+    thumb: 'Thumb',
     task_id: 'Task ID',
     status: 'Status',
     images: 'Images',

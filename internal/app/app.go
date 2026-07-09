@@ -144,14 +144,17 @@ func (a *App) registerAPI(r *gin.Engine) {
 		analysisH := handler.NewAnalysisHandler(a.cfg.Store.AnalysisDir)
 		thumbH := handler.NewThumbnailHandler(a.taskSvc, a.cfg.Store.UploadDir)
 		inputH := handler.NewInputHandler(a.taskSvc, a.cfg.Store.UploadDir)
+		inputThumbH := handler.NewInputThumbHandler(a.taskSvc, a.cfg.Store.UploadDir)
 
 		api.POST("/upload", middleware.BodyLimit(a.cfg.Server.UploadMaxSizeMB), uploadH.Upload)
+			api.POST("/upload/sample", uploadH.UploadSample)
 		api.GET("/task/:task_id", taskH.GetTask)
 		api.GET("/history", historyH.GetHistory)
 		api.GET("/result/:task_id", resultH.GetResult)
 		api.GET("/analysis/:task_id/:filename", analysisH.GetAnalysis)
 		api.GET("/thumbnail/:task_id", thumbH.GetThumbnail)
 		api.GET("/input/:task_id/:filename", inputH.GetInput)
+		api.GET("/input-thumb/:task_id/:filename", inputThumbH.GetInputThumb)
 	}
 }
 

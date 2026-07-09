@@ -21,6 +21,18 @@
     <!-- 数据表格 -->
     <template v-else>
       <el-table :data="items" stripe style="width: 100%" @row-click="goDetail" row-class-name="clickable-row" v-loading="loading">
+        <el-table-column :label="$t('history.thumb')" width="80">
+          <template #default="{ row }">
+            <el-image
+              v-if="row.thumbnail_url"
+              :src="row.thumbnail_url"
+              fit="cover"
+              class="history-thumb"
+            />
+            <span v-else class="thumb-placeholder">-</span>
+          </template>
+        </el-table-column>
+
         <el-table-column type="index" :label="$t('history.index')" width="60" :index="indexMethod" />
 
         <el-table-column :label="$t('history.task_id')" min-width="200">
@@ -144,5 +156,8 @@ onUnmounted(() => { savePage() })
 .task-id { font-family: monospace; font-size: 13px; }
 :deep(.clickable-row) { cursor: pointer; transition: background 0.15s ease; }
 :deep(.clickable-row:hover) { background: rgba(64, 158, 255, 0.04) !important; }
+.history-thumb { width: 64px; height: 48px; border-radius: 4px; }
+.history-thumb :deep(img) { object-fit: cover; }
+.thumb-placeholder { color: var(--text-light); font-size: 18px; }
 .pagination-wrap { margin-top: 24px; display: flex; justify-content: flex-end; }
 </style>
