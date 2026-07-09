@@ -186,6 +186,8 @@ go run .
 
 GORM 会在首次启动时自动创建 `tasks` 表，无需手动执行 SQL。
 
+> 💡 **没有测试图片？** 上传页面提供「使用示例图片」按钮，后端会自动从 `store/samples/input/` 复制预置图片创建任务，启动后即可体验完整流程。Mock 模式下也能直接看到拼接结果，无需 Python 环境。
+
 ### 3.2 前端（开发模式）
 
 ```bash
@@ -235,8 +237,7 @@ server:
 
 worker:
   pool_size: 20               # Worker 协程数（最大并发 Python 进程数）
-  timeout_seconds: 30         # 单个 Python 进程超时秒数
-  cleanup_minutes: 10         # （已废弃，历史淘汰已改为即时触发）
+  timeout_seconds: 30         # 普通模式超时秒数（超能模式固定 300 秒）
 
 store:
   upload_dir: ./store/uploads    # 上传文件和拼接结果存储目录
@@ -335,8 +336,17 @@ curl http://localhost:8080/api/analysis/uuid-xxx/eval_result.json
 # 历史记录（分页）
 curl "http://localhost:8080/api/history?page=1&size=10"
 
+# 使用示例图片创建任务（普通模式）
+curl -X POST "http://localhost:8080/api/upload/sample?mode=normal"
+
+# 使用示例图片创建任务（超能模式）
+curl -X POST "http://localhost:8080/api/upload/sample?mode=super"
+
 # 获取原始上传图片
 curl http://localhost:8080/api/input/uuid-xxx/img_001.jpg -o original.jpg
+
+# 获取原始上传图片缩略图
+curl http://localhost:8080/api/input-thumb/uuid-xxx/img_001.jpg -o input_thumb.jpg
 ```
 
 ---
@@ -361,17 +371,18 @@ PIS-web/
 │   │   ├── cpp.go              # C++ 引擎（预留）
 │   │   ├── analysis_mock.go    # Mock 分析引擎
 │   │   └── analysis_python.go  # Python 分析引擎
-│   ├── handler/                # HTTP 处理器（7 个端点）
-│   │   ├── upload.go           # POST /api/upload
+│   ├── handler/                # HTTP 处理器（9 个端点）
+│   │   ├── upload.go           # POST /api/upload + POST /api/upload/sample
 │   │   ├── task.go             # GET  /api/task/:task_id
 │   │   ├── history.go          # GET  /api/history
 │   │   ├── result.go           # GET  /api/result/:task_id
 │   │   ├── thumbnail.go        # GET  /api/thumbnail/:task_id
 │   │   ├── analysis.go         # GET  /api/analysis/:task_id/:filename
-│   │   └── input.go            # GET  /api/input/:task_id/:filename
+│   │   ├── input.go            # GET  /api/input/:task_id/:filename
+│   │   └── input_thumb.go      # GET  /api/input-thumb/:task_id/:filename
 │   ├── service/                # 业务逻辑
 │   │   ├── task_service.go     # CRUD + HandleResult + 任务日志
-│   │   └── task_eviction.go    # 历史淘汰（最多 30 条）
+│   │   └── task_eviction.go    # 历史淘汰（最多 40 条）
 │   ├── worker/                 # Worker Pool
 │   │   ├── pool.go             # 任务调度 + processJob
 │   │   └── thumbnail.go        # 缩略图预生成
@@ -419,12 +430,14 @@ PIS-web/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `POST` | `/api/upload` | 上传多张图片（multipart `images[]`），返回 `task_id` |
+| `POST` | `/api/upload/sample?mode=normal\|super` | 使用预置示例图片创建任务 |
 | `GET` | `/api/task/:task_id` | 轮询任务状态，completed 时附带 result/thumbnail/chart/table/input 各 URL |
 | `GET` | `/api/history?page=1&size=10` | 分页查询历史记录，按时间倒序 |
 | `GET` | `/api/result/:task_id` | 拼接结果原图（JPEG 二进制流） |
-| `GET` | `/api/thumbnail/:task_id` | 缩略图（800px JPEG，Worker 预生成） |
-| `GET` | `/api/analysis/:task_id/:filename` | 分析图表（PNG）或数据（JSON） |
+| `GET` | `/api/thumbnail/:task_id` | 结果缩略图（800px JPEG，Worker 预生成） |
 | `GET` | `/api/input/:task_id/:filename` | 原始上传图片（含路径穿越防护） |
+| `GET` | `/api/input-thumb/:task_id/:filename` | 原始上传图片缩略图（1 小时浏览器缓存） |
+| `GET` | `/api/analysis/:task_id/:filename` | 分析图表（PNG）或数据（JSON） |
 
 ---
 
@@ -436,7 +449,7 @@ PIS-web/
 
 ### 8.2 Worker Pool
 
-固定 20 个 goroutine 从有缓冲 Channel（容量 20）取 Job。上传接口异步提交后立即返回 `task_id`，提交超时 3 秒（队列满返回 503 实现背压）。每个 Python 进程 `context.WithTimeout` 30 秒。分析或缩略图失败仅记 warning 日志，不影响拼接结果。
+固定 20 个 goroutine 从有缓冲 Channel（容量 20）取 Job。上传接口异步提交后立即返回 `task_id`，提交超时 3 秒（队列满返回 503 实现背压）。每个任务根据运行模式设置超时：普通模式 30 秒，超能模式 300 秒（同时用于拼接和分析）。分析或缩略图失败仅记 warning 日志，不影响拼接结果。
 
 ### 8.3 Go ↔ Python IPC
 
@@ -449,7 +462,11 @@ PIS-web/
 
 ### 8.4 历史淘汰
 
-最多保留 30 条 `completed`/`failed` 记录。每次 `HandleResult` 后即时触发检查，超出按时间升序删除——同时清理磁盘和数据库。
+最多保留 40 条 `completed`/`failed` 记录。每次 `HandleResult` 后即时触发检查，超出按时间升序删除——同时清理磁盘和数据库。
+
+### 8.5 预置示例数据集
+
+面向局域网部署场景，上传页面提供「使用示例图片」按钮，后端从 `store/samples/input/` 目录复制预置图片到新任务目录。该目录独立于 `store/uploads/`，不受历史淘汰影响，确保示例图片始终可用。
 
 ---
 
@@ -459,8 +476,8 @@ PIS-web/
 |------|-----|
 | 上传大小限制 | 200 MB |
 | Worker 数量 | 20 goroutines |
-| Python 超时 | 30 秒 |
-| 历史记录上限 | 30 条（超出自动淘汰） |
+| Python 超时 | 普通 30 秒 / 超能 300 秒 |
+| 历史记录上限 | 40 条（超出自动淘汰） |
 | 安全防护 | 路径穿越检查、环境变量存储敏感信息、UUID 任务隔离 |
 
 ---
