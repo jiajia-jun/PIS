@@ -40,8 +40,8 @@ export default {
     tables: '分析数据',
     can_leave_hint: '您可以离开当前页面，任务将在后台继续运行',
     mode_label: '运行模式',
-    mode_normal_label: '普通模式 (30s)',
-    mode_super_label: '超能模式 (60s)',
+    mode_normal_label: '普通模式',
+    mode_super_label: '超能模式',
   },
   history: {
     title: '拼接历史',
