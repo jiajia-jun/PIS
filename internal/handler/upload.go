@@ -71,6 +71,15 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			})
 		return
 	}
+
+	// 读取运行模式并写入任务
+	mode := "normal"
+	if modes, ok := form.Value["mode"]; ok && len(modes) > 0 && modes[0] == "super" {
+		mode = "super"
+	}
+	task.Mode = mode
+	h.svc.UpdateTask(task)
+
 	taskID := task.ID
 
 	inputDir := filepath.Join(h.uploadDir, taskID, "input")
@@ -106,9 +115,9 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 
 	taskDir := filepath.Join(h.uploadDir, taskID)
 
-	// 读取运行模式：normal=30s, super=60s
+	// 根据运行模式设置超时：normal=30s, super=60s
 	timeoutSeconds := 0 // 0 表示使用 Pool 默认值 30s
-	if mode := c.PostForm("mode"); mode == "super" {
+	if mode == "super" {
 		timeoutSeconds = 60
 	}
 

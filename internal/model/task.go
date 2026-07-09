@@ -23,6 +23,7 @@ type Task struct {
 	Keypoints  int       `gorm:"default:0" json:"keypoints"`
 	ErrorMsg   string    `gorm:"size:500" json:"-"`
 	ImageCount int       `gorm:"default:0" json:"image_count"`
+	Mode       string    `gorm:"size:20;default:normal" json:"mode"`
 	ResultPath string    `gorm:"size:255" json:"-"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

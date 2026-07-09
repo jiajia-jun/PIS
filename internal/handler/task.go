@@ -53,6 +53,7 @@ func (h *TaskHandler) taskToResponse(task *model.Task) gin.H {
 		"task_id":     task.ID,
 		"status":      task.Status,
 		"image_count": task.ImageCount,
+		"mode":        task.Mode,
 		"created_at":  task.CreatedAt.Format(time.RFC3339),
 	}
 
