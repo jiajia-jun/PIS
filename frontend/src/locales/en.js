@@ -18,6 +18,9 @@ export default {
     size_exceed: 'File {name} exceeds 200MB limit',
     selected_count: '{n} image selected | {n} images selected',
     clear_all: 'Clear all',
+    mode_normal: 'Normal',
+    mode_super: 'Super',
+    distortion_warning: 'Note: Results may be distorted if the input images do not meet panorama stitching requirements',
   },
   task: {
     title: 'Task',
@@ -35,6 +38,7 @@ export default {
     source_images: 'Source Images',
     charts: 'Analysis Charts',
     tables: 'Analysis Data',
+    can_leave_hint: 'You can leave this page — the task will continue running in the background',
   },
   history: {
     title: 'Stitch History',

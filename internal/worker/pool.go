@@ -14,10 +14,11 @@ import (
 
 // Job 任务工作单元
 type Job struct {
-	TaskID        string
-	TaskDir       string // 任务根目录 = store/uploads/{task_id}
-	StitchEngine  engine.AlgorithmEngine
+	TaskID         string
+	TaskDir        string // 任务根目录 = store/uploads/{task_id}
+	StitchEngine   engine.AlgorithmEngine
 	AnalysisEngine engine.AlgorithmEngine
+	TimeoutSeconds int // 0 表示使用 Pool 默认超时
 }
 
 // Pool 固定大小的 Worker Pool
@@ -80,7 +81,11 @@ func (p *Pool) processJob(job Job) {
 	p.service.UpdateTask(task)
 
 	// 第一步：执行拼接
-	stitchCtx, stitchCancel := context.WithTimeout(context.Background(), p.timeout)
+	timeout := p.timeout
+	if job.TimeoutSeconds > 0 {
+		timeout = time.Duration(job.TimeoutSeconds) * time.Second
+	}
+	stitchCtx, stitchCancel := context.WithTimeout(context.Background(), timeout)
 	meta, stitchErr := job.StitchEngine.Run(stitchCtx, job.TaskDir)
 	stitchCancel()
 
@@ -91,7 +96,7 @@ func (p *Pool) processJob(job Job) {
 	}
 
 	// 第二步：执行分析（拼接成功后才跑）
-	analysisCtx, analysisCancel := context.WithTimeout(context.Background(), p.timeout)
+	analysisCtx, analysisCancel := context.WithTimeout(context.Background(), timeout)
 	_, analysisErr := job.AnalysisEngine.Run(analysisCtx, job.TaskDir)
 	analysisCancel()
 
