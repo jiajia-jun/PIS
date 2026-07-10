@@ -7,7 +7,7 @@ engine:
   cpp_binary: ""
 
 server:
-  host: "10.17.220.137"  # 监听接口
+  host: "10.20.221.85"  # 监听接口
   port: 8081
   upload_max_size_mb: 200
 

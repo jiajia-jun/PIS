@@ -87,7 +87,12 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 		// 执行失败或超时
 		task.Status = model.StatusFailed
 		task.ErrorMsg = runErr.Error()
-		s.db.Save(task)
+		if err := s.db.Save(task).Error; err != nil {
+			s.taskLog.Error("db save failed",
+				zap.String("task_id", taskID),
+				zap.Error(err),
+			)
+		}
 		s.writeTaskLog(task)
 		s.enforceHistoryLimit()
 		return
@@ -98,8 +103,13 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 	meta, err = engine.ReadMetaJSON(resultDir)
 	if err != nil {
 		task.Status = model.StatusFailed
-		task.ErrorMsg = fmt.Sprintf("读取处理结果失败")
-		s.db.Save(task)
+		task.ErrorMsg = "读取处理结果失败"
+		if err := s.db.Save(task).Error; err != nil {
+			s.taskLog.Error("db save failed",
+				zap.String("task_id", taskID),
+				zap.Error(err),
+			)
+		}
 		s.writeTaskLog(task)
 		s.enforceHistoryLimit()
 		return
@@ -119,7 +129,12 @@ func (s *TaskService) HandleResult(taskID, inputDir string, meta *engine.Meta, r
 		task.Keypoints = meta.Keypoints
 		task.ResultPath = filepath.Join(resultDir, "result.jpg")
 	}
-	s.db.Save(task)
+	if err := s.db.Save(task).Error; err != nil {
+		s.taskLog.Error("db save failed",
+			zap.String("task_id", taskID),
+			zap.Error(err),
+		)
+	}
 
 	s.writeTaskLog(task)
 	s.enforceHistoryLimit()
