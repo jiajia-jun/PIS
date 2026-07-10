@@ -1,4 +1,4 @@
-# PIS-web — 全景图像拼接系统
+# PIS — 全景图像拼接系统
 
 基于 B/S 架构的全景图像拼接 Web 应用。用户通过浏览器上传多张有重叠区域的图片，后端异步调用 OpenCV 算法完成拼接与质量评估，前端实时展示结果。
 
@@ -213,7 +213,7 @@ go build -o pis-web .
 ./pis-web
 ```
 
-生产模式下只需一个 `pis-web` 可执行文件 + `config.yaml` + `frontend/dist/` + `scripts/`（如果用 python 引擎）。
+生产模式下只需一个 `pis-web` 可执行文件 + `config.yaml` + `frontend/dist/` + `scripts/`（如果用 Python 引擎）。
 
 ---
 
@@ -270,9 +270,9 @@ go build -o pis-web .              # Windows: -o pis-web.exe
 GOOS=linux GOARCH=amd64 go build -o pis-web .
 
 # 运行测试
-go test ./internal/... -v          # 单元测试（待补充）
+go test ./internal/... -v          # 单元测试
 go test ./webTest/ -v              # 集成测试（需 DATABASE_PIS 环境变量）
-go test ./webTest/ -v -run TestUploadAndTaskFlow  # 单测某个用例
+go test ./webTest/ -v -run TestUploadAndTaskFlow  # 全链路单测
 ```
 
 ### 5.2 Python 拼接脚本 `stitch.py`
@@ -357,7 +357,8 @@ curl http://localhost:8080/api/input-thumb/uuid-xxx/img_001.jpg -o input_thumb.j
 PIS-web/
 ├── main.go                     # 入口（调用 app.New + Run）
 ├── config.yaml                 # 运行时配置
-├── go.mod / go.sum             # Go 模块定义
+├── go.mod / go.sum             # Go 模块定义（模块名: pisweb）
+├── start.bat                   # Windows 一键启动脚本
 │
 ├── internal/                   # Go 源码
 │   ├── app/app.go              # 应用组装（依赖注入）
@@ -394,8 +395,8 @@ PIS-web/
 │
 ├── scripts/                    # Python 算法脚本
 │   ├── stitch.py               # 全景拼接（SIFT + RANSAC + OpenCV Stitcher）
-│   ├── eval_pipeline.py             # 分析适配器（桥接 + 图表生成）
-│   └── eval_core.py                # 数据分析核心（分析组维护）
+│   ├── eval_pipeline.py        # 分析适配器（桥接 + 图表生成）
+│   └── eval_core.py            # 数据分析核心
 │
 ├── frontend/                   # Vue 3 前端
 │   ├── index.html              # HTML 入口（含 Splash 入场动画）
@@ -406,19 +407,29 @@ PIS-web/
 │       ├── i18n.js             # 国际化配置
 │       ├── api/index.js        # API 封装
 │       ├── composables/
-│       │   └── useDarkMode.js      # 暗色模式状态管理
+│       │   └── useDarkMode.js  # 暗色模式状态管理
 │       ├── router/index.js     # 路由（/, /task/:id, /history, /about）
 │       ├── locales/{zh,en}.js  # 中/英语言包
 │       └── views/
 │           ├── UploadView.vue       # 上传页
 │           ├── TaskDetailView.vue   # 详情页（结果 + 评估）
 │           ├── HistoryView.vue      # 历史页
-│           └── AboutView.vue        # 关于我们
+│           └── AboutView.vue        # 关于页面
+│
+├── docs/                       # 设计文档与接口规范
+│   ├── 设计文档/               # 系统架构、后端设计、数据交互规范等
+│   ├── 接口文档/               # 算法组 & 数据分析组接口规范
+│   ├── 技术要点/               # 各模块关键技术要点
+│   ├── 设计亮点/               # 架构/算法/数据分析设计亮点
+│   └── 答辩模拟/               # 答辩模拟问答
 │
 ├── store/                      # 运行时数据（gitignore）
-├── logs/                       # access.log + task.log（gitignore）
-├── docs/                       # 设计文档与接口规范
+│   ├── uploads/                # 上传文件和拼接结果
+│   ├── analysis/               # 分析图表和评估数据
+│   └── samples/                # 预置示例图片数据集
+├── logs/                       # 运行日志（gitignore）
 └── webTest/                    # 集成测试
+    └── main_test.go
 ```
 
 ---
@@ -498,15 +509,19 @@ go test ./webTest/ -v -run TestConcurrentUpload     # 10 并发上传
 
 ## 11. 文档
 
-| 文档 | 说明 |
-|------|------|
-| `docs/系统架构设计文档.md` | 系统架构、模块设计、数据流、设计模式 |
-| `docs/后端设计文档.md` | 后端详细设计（模块、API、日志、配置） |
-| `docs/算法组接口文档.md` | stitch.py 接口规范 |
-| `docs/数据分析组接口文档.md` | eval_pipeline.py 接口规范 |
-| `docs/数据交互规范.md` | 算法组 ↔ 分析组 ↔ 前端数据交换约定 |
-| `docs/错误信息汇总.md` | 全系统错误信息索引与流转路径 |
-| `docs/devlog/` | 开发日志（设计变更、差异分析报告等） |
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| 系统架构设计文档 | `docs/设计文档/系统架构设计文档.md` | 系统架构、模块设计、数据流、设计模式 |
+| 后端设计文档 | `docs/设计文档/后端设计文档.md` | 后端详细设计（模块、API、日志、配置） |
+| 三组职责 | `docs/设计文档/三组职责.md` | 算法组/数据分析组/后端组职责划分 |
+| 数据交互规范 | `docs/设计文档/数据交互规范.md` | 算法组 ↔ 分析组 ↔ 前端数据交换约定 |
+| 评价指标参考手册 | `docs/设计文档/评价指标参考手册.md` | 六维质量评估指标详解 |
+| 错误信息汇总 | `docs/设计文档/错误信息汇总.md` | 全系统错误信息索引与流转路径 |
+| 算法组接口文档 | `docs/接口文档/算法组接口文档.md` | stitch.py 接口规范 |
+| 数据分析组接口文档 | `docs/接口文档/数据分析组接口文档.md` | eval_pipeline.py 接口规范 |
+| 技术要点 | `docs/技术要点/` | 各模块关键技术要点（算法/后端/并发/通信协议等） |
+| 设计亮点 | `docs/设计亮点/` | 架构/算法/数据分析设计亮点总结 |
+| 答辩模拟 | `docs/答辩模拟/答辩模拟问答.md` | 答辩常见问题模拟 |
 
 ## License
 
