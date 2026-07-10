@@ -41,7 +41,8 @@ MAX_IMAGES = 20        # 最大输入图片数（与 Go 后端对齐）
 MAX_SIZE = 2000        # 预处理缩放最长边阈值
 CONFIDENCE = 0.6       # 匹配置信度阈值
 RESULT_MAX_EDGE = 4000 # 全景图最长边限制
-LOWE_RATIO = 0.7       # Lowe's ratio test 阈值
+LOWE_RATIO = 0.7       # Lowe's ratio test 阈值（默认）
+LOWE_RATIO_HIGH = 0.8   # 15 张及以上使用更高阈值
 
 # OpenCV 4.x 常量兼容: Stitcher_SCAN → Stitcher_SCANS
 _STITCHER_PANORAMA = cv2.Stitcher_PANORAMA
@@ -279,10 +280,12 @@ def match_adjacent_pairs(images):
     inliers_list = []
     result_info = {"pairs": []}
 
+    lowe_ratio = LOWE_RATIO_HIGH if len(images) >= 15 else LOWE_RATIO
+
     for i in range(len(images) - 1):
         kp1, des1 = features[i]
         kp2, des2 = features[i + 1]
-        H, inliers, total, inlier_num = match_pair(kp1, des1, kp2, des2)
+        H, inliers, total, inlier_num = match_pair(kp1, des1, kp2, des2, lowe_ratio)
 
         if H is not None:
             H_list.append(H)
