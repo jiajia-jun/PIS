@@ -77,7 +77,7 @@ func TestMain(m *testing.M) {
 
 	// 初始化 Handler
 	uploadH := handler.NewUploadHandler(taskSvc, pool, stitchEngine, analysisEngine, cfg.Store.UploadDir)
-	taskH := handler.NewTaskHandler(taskSvc, cfg.Store.AnalysisDir)
+	taskH := handler.NewTaskHandler(taskSvc, cfg.Store.AnalysisDir, cfg.Store.UploadDir)
 	historyH := handler.NewHistoryHandler(taskSvc, cfg.Store.AnalysisDir)
 	resultH := handler.NewResultHandler(taskSvc, cfg.Store.UploadDir)
 	analysisH := handler.NewAnalysisHandler(cfg.Store.AnalysisDir)
