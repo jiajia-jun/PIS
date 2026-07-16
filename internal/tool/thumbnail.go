@@ -17,6 +17,7 @@ func ResizeToJPEG(src io.Reader, dst io.Writer, width int) error {
 		return err
 	}
 
+	// 兰索斯算法
 	thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
 
 	return jpeg.Encode(dst, thumb, &jpeg.Options{Quality: 85})

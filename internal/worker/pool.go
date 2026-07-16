@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"go.uber.org/zap"
 	"pisweb/internal/engine"
 	"pisweb/internal/model"
 	"pisweb/internal/service"
+
+	"go.uber.org/zap"
 )
 
 // Job 任务工作单元
@@ -91,7 +92,7 @@ func (p *Pool) processJob(job Job) {
 	)
 	stitchCtx, stitchCancel := context.WithTimeout(context.Background(), timeout)
 	meta, stitchErr := job.StitchEngine.Run(stitchCtx, job.TaskDir)
-	stitchCancel()
+	stitchCancel() // context.WithTimeout内置了定时器，这里直接调用
 
 	if stitchErr != nil || (meta != nil && meta.Status == "error") {
 		// 拼接失败（Go 级错误 或 Python 返回 status="error"），直接记录失败，不跑分析
@@ -102,7 +103,7 @@ func (p *Pool) processJob(job Job) {
 	// 第二步：执行分析（拼接成功后才跑）
 	analysisCtx, analysisCancel := context.WithTimeout(context.Background(), timeout)
 	_, analysisErr := job.AnalysisEngine.Run(analysisCtx, job.TaskDir)
-	analysisCancel()
+	analysisCancel() // 这里同理
 
 	if analysisErr != nil {
 		// 分析失败不影响拼接结果，仅记录日志
