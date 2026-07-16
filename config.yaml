@@ -1,7 +1,7 @@
 engine:
-  stitch_type: python
+  stitch_type: python 
   analysis_type: python
-  python_path: "E:/Dev/Compiler/Python/python.exe"
+  python_path: "这里写你的python编译器路径"
   stitch_script_path: "./scripts/stitch.py"
   analysis_script_path: "./scripts/eval_pipeline.py"
   cpp_binary: ""
