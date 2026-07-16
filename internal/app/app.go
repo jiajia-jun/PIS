@@ -175,7 +175,7 @@ func (a *App) Run() {
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	addr := fmt.Sprintf("%s:%d", a.cfg.Server.Host, a.cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", host, a.cfg.Server.Port)
 	fmt.Printf("服务启动: http://%s:%d\n", host, a.cfg.Server.Port)
 
 	go func() {
