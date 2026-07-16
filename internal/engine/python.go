@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ func (p *PythonEngine) Run(ctx context.Context, inputDir string) (*Meta, error) 
 		return nil, fmt.Errorf("图像处理异常: %s", msg)
 	}
 
-	resultDir := inputDir + "/result"
+	resultDir := filepath.Join(inputDir, "result")
 	meta, err := ReadMetaJSON(resultDir)
 	if err != nil {
 		return nil, fmt.Errorf("读取处理结果失败，请稍后重试")
